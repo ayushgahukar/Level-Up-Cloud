@@ -1,0 +1,5249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Level Up — Gamified Productivity Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+/* ==========================================================================
+   LEVEL UP // 8-BIT BRUTALIST PRODUCTIVITY ENGINE
+   STRICT MONOCHROME PALETTE: #000, #111, #222, #333, #666, #888, #aaa, #ccc, #eee, #fff
+   FONTS: "Press Start 2P" (Headings/Badges) & "Space Mono" (Body/Data)
+   ========================================================================== */
+
+/* --- CSS Reset & Custom Properties --- */
+:root {
+
+  --color-black: #000000;
+  --color-dark-1: #111111;
+  --color-dark-2: #222222;
+  --color-dark-3: #333333;
+  --color-gray-dark: #555555;
+  --color-gray: #777777;
+  --color-gray-light: #aaaaaa;
+  --color-gray-very-light: #cccccc;
+  --color-light-2: #dddddd;
+  --color-light-1: #eeeeee;
+  --color-white: #ffffff;
+
+  --border-thick: 4px solid var(--color-black);
+  --border-mid: 3px solid var(--color-black);
+  --border-thin: 2px solid var(--color-black);
+  --border-dashed: 3px dashed var(--color-black);
+  --border-double: 5px double var(--color-black);
+
+  --shadow-hard: 5px 5px 0px var(--color-black);
+  --shadow-hard-lg: 8px 8px 0px var(--color-black);
+  --shadow-hard-sm: 3px 3px 0px var(--color-black);
+  --shadow-stacked: 4px 4px 0px var(--color-black), 8px 8px 0px var(--color-gray-light);
+
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-mono: 'Space Mono', monospace;
+}
+
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  background-color: var(--color-light-1);
+  color: var(--color-black);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  background-color: #e5e5e0;
+  background-image: 
+    radial-gradient(var(--color-black) 1px, transparent 0),
+    radial-gradient(var(--color-gray-light) 1px, #f2f2ee 0);
+  background-position: 0 0, 16px 16px;
+  background-size: 32px 32px;
+  color: var(--color-black);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  padding: 0;
+}
+
+/* Screen shake effect on HP loss */
+body.screen-shaking {
+  animation: brutalistShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes brutalistShake {
+  10%, 90% { transform: translate3d(-3px, 2px, 0) rotate(-0.5deg); }
+  20%, 80% { transform: translate3d(4px, -3px, 0) rotate(0.8deg); }
+  30%, 50%, 70% { transform: translate3d(-5px, 3px, 0) rotate(-0.6deg); }
+  40%, 60% { transform: translate3d(5px, -2px, 0) rotate(0.5deg); }
+}
+
+/* Flash screen on damage / level up */
+body.flash-damage {
+  animation: flashInvert 0.25s steps(2);
+}
+
+@keyframes flashInvert {
+  0% { filter: invert(1); }
+  50% { filter: invert(0.8); }
+  100% { filter: invert(0); }
+}
+
+/* --- CRT Scanlines & Vignette --- */
+.crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.05));
+  background-size: 100% 4px, 6px 100%;
+  opacity: 0.8;
+  display: block;
+}
+
+body:not(.crt-enabled) .crt-overlay {
+  display: none;
+}
+
+.vignette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9998;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.4);
+}
+
+/* --- App Wrapper Layout --- */
+.app-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 18px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --- Marquee / Ticker Tape --- */
+.zine-tape-top {
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 6px 0;
+  border: var(--border-mid);
+  box-shadow: var(--shadow-hard-sm);
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  transform: rotate(-0.5deg);
+}
+
+.ticker-track {
+  display: inline-block;
+  animation: tickerSlide 28s linear infinite;
+}
+
+.ticker-track span {
+  padding-right: 50px;
+}
+
+@keyframes tickerSlide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* --- Brutalist Building Blocks --- */
+.brutalist-panel {
+  background: var(--color-white);
+  border: var(--border-thick);
+  box-shadow: var(--shadow-hard-lg);
+  padding: 24px;
+  position: relative;
+}
+
+.brutalist-card {
+  background: var(--color-white);
+  border: var(--border-mid);
+  box-shadow: var(--shadow-hard);
+  padding: 16px;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Slight quirky tilts for neo-brutalist / zine feel */
+.tilt-left {
+  transform: rotate(-1.2deg);
+}
+
+.tilt-right {
+  transform: rotate(1.2deg);
+}
+
+.tilt-left:hover, .tilt-right:hover {
+  transform: rotate(0deg) translate(-2px, -2px);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+/* Tape sticker effect */
+.tape-effect {
+  position: relative;
+  background: var(--color-white);
+  border: var(--border-thin);
+  padding: 4px 10px;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  box-shadow: var(--shadow-hard-sm);
+  display: inline-block;
+}
+
+.tape-effect::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 20%;
+  width: 60%;
+  height: 8px;
+  background: repeating-linear-gradient(45deg, #bbb, #bbb 4px, #fff 4px, #fff 8px);
+  border: 1px solid var(--color-black);
+  opacity: 0.85;
+}
+
+/* --- Brutalist Buttons --- */
+.brutalist-btn {
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  padding: 12px 18px;
+  background: var(--color-white);
+  color: var(--color-black);
+  border: var(--border-mid);
+  box-shadow: var(--shadow-hard);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease;
+  user-select: none;
+}
+
+.brutalist-btn:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 7px 7px 0px var(--color-black);
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+.brutalist-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0px var(--color-black);
+}
+
+.brutalist-btn.btn-primary {
+  background: var(--color-black);
+  color: var(--color-white);
+  border: var(--border-thick);
+}
+
+.brutalist-btn.btn-primary:hover {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.brutalist-btn.btn-secondary {
+  background: var(--color-light-1);
+}
+
+.brutalist-btn.btn-danger {
+  background: var(--color-white);
+  border: 3px double var(--color-black);
+}
+
+.brutalist-btn.btn-danger:hover {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+.brutalist-btn.btn-sm {
+  font-size: 0.6rem;
+  padding: 6px 10px;
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.brutalist-btn.btn-huge {
+  font-size: 0.9rem;
+  padding: 16px 24px;
+  letter-spacing: 1px;
+}
+
+/* --- Header Section --- */
+.main-header {
+  border-width: 5px;
+  transform: rotate(-0.3deg);
+  background: #ffffff;
+  position: relative;
+  z-index: 50;
+}
+
+.header-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: var(--border-mid);
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+.date-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 4px 10px;
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ascii-banner {
+  font-family: var(--font-pixel);
+  font-size: 0.45rem;
+  line-height: 1.15;
+  color: var(--color-black);
+  background: var(--color-light-1);
+  padding: 12px;
+  border: var(--border-thin);
+  margin-bottom: 18px;
+  overflow-x: auto;
+  user-select: none;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.title-cluster {
+  flex: 1;
+  min-width: 280px;
+}
+
+/* Glitch Title Animation */
+.glitch-title {
+  font-family: var(--font-pixel);
+  font-size: 2.8rem;
+  letter-spacing: 4px;
+  color: var(--color-black);
+  position: relative;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.glitch-title::before,
+.glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
+.glitch-title::before {
+  left: 2px;
+  text-shadow: -2px 0 var(--color-gray);
+  clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+  animation: glitch-anim-1 2.8s infinite linear alternate-reverse;
+}
+
+.glitch-title::after {
+  left: -2px;
+  text-shadow: 2px 0 var(--color-gray-dark);
+  clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+  animation: glitch-anim-2 3.2s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim-1 {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-1px, -1px); }
+  60% { transform: translate(2px, 1px); }
+  80% { transform: translate(1px, -2px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes glitch-anim-2 {
+  0% { transform: translate(0); }
+  25% { transform: translate(2px, -1px); }
+  50% { transform: translate(-2px, 1px); }
+  75% { transform: translate(1px, 2px); }
+  100% { transform: translate(0); }
+}
+
+.header-tagline {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+/* Hero ID Card */
+.hero-id-card {
+  min-width: 320px;
+  border-width: 4px;
+  background: var(--color-white);
+  box-shadow: var(--shadow-stacked);
+  transform: rotate(1deg);
+}
+
+.hero-id-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  border-bottom: var(--border-thin);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.hero-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.player-name-val {
+  font-family: var(--font-pixel);
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.hero-rank-tag {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 3px 6px;
+}
+
+.hero-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--color-dark-3);
+  border-top: 1px dashed var(--color-black);
+  padding-top: 6px;
+}
+
+/* --- Player HUD Section --- */
+.hud-section {
+  background: #fafaf8;
+}
+
+.panel-header-ribbon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: var(--border-thick);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.panel-header-ribbon h2 {
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+
+.hud-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--color-light-2);
+  padding: 2px 8px;
+  border: var(--border-thin);
+}
+
+.bars-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .bars-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-bar-block {
+  border-width: 4px;
+}
+
+.bar-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.bar-label {
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.symbol-tag {
+  font-size: 1rem;
+}
+
+.heart-tag {
+  color: var(--color-black);
+}
+
+.bar-numeric {
+  font-family: var(--font-pixel);
+  font-size: 0.85rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 3px 8px;
+}
+
+/* Retro Meter Frame */
+.meter-frame {
+  height: 28px;
+  border: var(--border-mid);
+  background: var(--color-light-1);
+  box-shadow: inset 3px 3px 0px rgba(0,0,0,0.25);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.meter-bar {
+  height: 100%;
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+}
+
+.hp-bar {
+  background: var(--color-black);
+}
+
+.meter-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 6px,
+    rgba(255, 255, 255, 0.35) 6px,
+    rgba(255, 255, 255, 0.35) 12px
+  );
+}
+
+.xp-bar {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-black) 0px,
+    var(--color-black) 14px,
+    var(--color-dark-2) 14px,
+    var(--color-dark-2) 18px
+  );
+}
+
+.bar-subtext {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.critical-warning {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 2px 6px;
+  animation: blinkWarning 0.8s infinite;
+}
+
+@keyframes blinkWarning {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.05); }
+}
+
+.xp-next-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+/* Quick Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metric-card {
+  text-align: center;
+  padding: 16px 12px;
+}
+
+.metric-title {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  color: var(--color-dark-2);
+}
+
+.metric-value-huge {
+  font-family: var(--font-pixel);
+  font-size: 2rem;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.metric-sub {
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-top: 1px dashed var(--color-black);
+  padding-top: 6px;
+}
+
+/* --- Analytics & Battle Telemetry Section --- */
+.telemetry-section {
+  background: var(--color-white);
+  margin-bottom: 24px;
+}
+
+.telemetry-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.telemetry-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.telemetry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.telemetry-body.collapsed {
+  display: none;
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 20px;
+}
+
+.telemetry-grid-secondary {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 900px) {
+  .telemetry-grid,
+  .telemetry-grid-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-width: 3px;
+  background: var(--color-white);
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  border-bottom: var(--border-thin);
+  padding-bottom: 8px;
+}
+
+.chart-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 2px 6px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.chart-title {
+  font-family: var(--font-pixel);
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  color: var(--color-black);
+}
+
+.chart-stat-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--color-light-1);
+  border: var(--border-thin);
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.chart-canvas-container {
+  width: 100%;
+  position: relative;
+  height: 220px;
+}
+
+.chart-canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+.chart-legend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-gray-light);
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-black);
+  display: inline-block;
+}
+
+.legend-swatch.legend-primary {
+  background: var(--color-black);
+}
+
+.legend-swatch.legend-dashed {
+  background: repeating-linear-gradient(45deg, #888, #888 2px, #fff 2px, #fff 4px);
+}
+
+.radar-attribute-chips {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-gray-light);
+}
+
+.radar-chip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: var(--color-light-1);
+  border: var(--border-thin);
+  padding: 2px 6px;
+  cursor: help;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.radar-chip:hover {
+  background: var(--color-black);
+  color: var(--color-white);
+  transform: translateY(-1px);
+}
+
+/* Hero Attribute Codex / Glossary */
+.attribute-glossary {
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--color-light-1);
+  border: var(--border-thin);
+  border-top: 3px solid var(--color-black);
+}
+
+.glossary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--color-gray-light);
+}
+
+.glossary-title {
+  font-family: var(--font-pixel);
+  font-size: 0.58rem;
+  letter-spacing: 0.5px;
+  color: var(--color-black);
+}
+
+.codex-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--color-black);
+  color: var(--color-black);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.codex-toggle-btn:hover {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+.glossary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.glossary-list.collapsed {
+  display: none;
+}
+
+.glossary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-light);
+  border-left: 3px solid var(--color-black);
+}
+
+.glossary-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 2px 5px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  line-height: 1.1;
+}
+
+.glossary-text {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--color-black);
+}
+
+.glossary-text strong {
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+/* Donut Chart Layout - Centered & Enlarged */
+.donut-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.donut-container {
+  position: relative;
+  width: 100%;
+  max-width: 270px;
+  height: 270px;
+  min-height: 270px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  margin: 0 auto;
+}
+
+.donut-breakdown-list {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 auto;
+}
+
+.donut-breakdown-item {
+  flex: 1 1 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  background: var(--color-light-1);
+  border: var(--border-thin);
+  border-top: 4px solid var(--color-black);
+}
+
+.donut-label-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  color: var(--color-black);
+}
+
+.donut-color-dot {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--color-black);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.donut-stats-line {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-black);
+}
+
+.donut-sub-line {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-gray);
+}
+
+@media (max-width: 500px) {
+  .donut-container {
+    max-width: 220px;
+    height: 220px;
+    min-height: 220px;
+  }
+  .donut-breakdown-list {
+    flex-direction: column;
+    width: 100%;
+  }
+  .donut-breakdown-item {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    border-top: none;
+    border-left: 4px solid var(--color-black);
+    padding: 6px 10px;
+  }
+}
+
+/* 28-Day Habit Heatmap */
+.heatmap-matrix-wrapper {
+  margin: 10px 0;
+}
+
+.heatmap-days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+  text-align: center;
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  color: var(--color-gray);
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border: 2px solid var(--color-black);
+  background: var(--color-light-1);
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.15);
+  z-index: 10;
+  box-shadow: 2px 2px 0px var(--color-black);
+}
+
+.heatmap-cell.lvl-0 { background: #fafaf8; }
+.heatmap-cell.lvl-1 { background: #cccccc; }
+.heatmap-cell.lvl-2 { background: #666666; }
+.heatmap-cell.lvl-3 { background: #000000; }
+
+.heatmap-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-gray-light);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.heatmap-scale-swatches {
+  display: flex;
+  gap: 4px;
+}
+
+.scale-dot {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-black);
+  display: inline-block;
+}
+.scale-dot.lvl-0 { background: #fafaf8; }
+.scale-dot.lvl-1 { background: #cccccc; }
+.scale-dot.lvl-2 { background: #666666; }
+.scale-dot.lvl-3 { background: #000000; }
+
+/* Theme adjustments for Telemetry */
+body[data-theme="cp2077"] .chart-card { background: #111115; border-color: #3a3a48; }
+body[data-theme="cp2077"] .chart-title { color: #fcee09; }
+body[data-theme="cp2077"] .chart-badge { background: #fcee09; color: #0a0a0c; }
+body[data-theme="cp2077"] .chart-stat-badge { background: #1a1a20; border-color: #3a3a48; color: #f0efe8; }
+body[data-theme="cp2077"] .donut-breakdown-item { background: #1a1a20; color: #f0efe8; }
+body[data-theme="cp2077"] .heatmap-cell.lvl-0 { background: #1a1a20; border-color: #3a3a48; }
+body[data-theme="cp2077"] .heatmap-cell.lvl-1 { background: #4a4505; border-color: #3a3a48; }
+body[data-theme="cp2077"] .heatmap-cell.lvl-2 { background: #a39906; border-color: #fcee09; }
+body[data-theme="cp2077"] .heatmap-cell.lvl-3 { background: #fcee09; border-color: #fcee09; }
+body[data-theme="cp2077"] .legend-swatch.legend-primary { background: #fcee09; }
+
+body[data-theme="terminal"] .chart-card { background: #001a00; border-color: #00aa00; }
+body[data-theme="terminal"] .chart-title { color: #00ff00; }
+body[data-theme="terminal"] .chart-badge { background: #00ff00; color: #001100; }
+body[data-theme="terminal"] .chart-stat-badge { background: #002200; border-color: #00ff00; color: #00ff00; }
+body[data-theme="terminal"] .donut-breakdown-item { background: #002200; color: #00ff00; border-color: #00ff00; }
+body[data-theme="terminal"] .heatmap-cell.lvl-0 { background: #001100; border-color: #003300; }
+body[data-theme="terminal"] .heatmap-cell.lvl-1 { background: #004400; border-color: #008800; }
+body[data-theme="terminal"] .heatmap-cell.lvl-2 { background: #00aa00; border-color: #00ff00; }
+body[data-theme="terminal"] .heatmap-cell.lvl-3 { background: #00ff00; border-color: #00ff00; }
+body[data-theme="terminal"] .legend-swatch.legend-primary { background: #00ff00; }
+
+body[data-theme="cyberpunk"] .chart-card { background: #12122a; border-color: #00fff2; }
+body[data-theme="cyberpunk"] .chart-title { color: #00fff2; }
+body[data-theme="cyberpunk"] .chart-badge { background: #ff00ff; color: #0a0a1a; }
+body[data-theme="cyberpunk"] .chart-stat-badge { background: #1a1a3a; border-color: #00fff2; color: #00fff2; }
+body[data-theme="cyberpunk"] .donut-breakdown-item { background: #1a1a3a; color: #f5f0ff; border-color: #00fff2; }
+body[data-theme="cyberpunk"] .heatmap-cell.lvl-0 { background: #12122a; border-color: #2a2a4a; }
+body[data-theme="cyberpunk"] .heatmap-cell.lvl-1 { background: #4a1a5a; border-color: #7a6a9a; }
+body[data-theme="cyberpunk"] .heatmap-cell.lvl-2 { background: #ff00ff; border-color: #00fff2; }
+body[data-theme="cyberpunk"] .heatmap-cell.lvl-3 { background: #00fff2; border-color: #00fff2; }
+body[data-theme="cyberpunk"] .legend-swatch.legend-primary { background: #00fff2; }
+
+/* --- Action Ribbon & Tabs --- */
+.action-ribbon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 18px 24px;
+}
+
+.ribbon-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tab-btn {
+  font-size: 0.75rem;
+  padding: 10px 14px;
+}
+
+.tab-btn.active {
+  background: var(--color-black);
+  color: var(--color-white);
+  transform: translate(-3px, -3px);
+  box-shadow: 7px 7px 0px var(--color-black);
+}
+
+.tab-count {
+  font-family: var(--font-mono);
+  font-weight: bold;
+}
+
+.ribbon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* --- Category Explainer Notice --- */
+.category-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  background: var(--color-white);
+  border: var(--border-mid);
+  box-shadow: var(--shadow-hard-sm);
+  transform: rotate(-0.4deg);
+}
+
+.category-banner-icon {
+  font-family: var(--font-pixel);
+  font-size: 1.1rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 4px 8px;
+}
+
+.category-banner-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* --- Tasks Section --- */
+.tasks-section {
+  min-height: 400px;
+}
+
+.tasks-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: var(--border-thick);
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+}
+
+.tasks-header-bar h2 {
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+}
+
+.sort-label {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brutalist-select {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 6px 10px;
+  border: var(--border-thin);
+  background: var(--color-white);
+  color: var(--color-black);
+  box-shadow: var(--shadow-hard-sm);
+  cursor: pointer;
+  outline: none;
+}
+
+/* Tasks Container */
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* --- Brutalist Task Card --- */
+.task-card {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  padding: 16px 20px;
+  border: var(--border-thick);
+  box-shadow: var(--shadow-hard);
+  background: var(--color-white);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Alternating subtle tilts */
+.task-card:nth-child(4n + 1) { transform: rotate(-0.5deg); }
+.task-card:nth-child(4n + 2) { transform: rotate(0.4deg); }
+.task-card:nth-child(4n + 3) { transform: rotate(-0.3deg); }
+.task-card:nth-child(4n + 4) { transform: rotate(0.6deg); }
+
+.task-card:hover {
+  transform: rotate(0deg) translate(-2px, -2px);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+/* Oversized Brutalist Checkbox */
+.task-checkbox-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 6px;
+}
+
+.brutalist-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 34px;
+  height: 34px;
+  border: var(--border-thick);
+  background: var(--color-white);
+  box-shadow: var(--shadow-hard-sm);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.1s ease;
+  outline: none;
+}
+
+.brutalist-checkbox:hover {
+  background: var(--color-light-1);
+  transform: scale(1.05);
+}
+
+.brutalist-checkbox:checked {
+  background: var(--color-black);
+}
+
+.brutalist-checkbox:checked::after {
+  content: "X";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-pixel);
+  font-size: 1.1rem;
+  color: var(--color-white);
+  line-height: 1;
+}
+
+/* Task Card Body */
+.task-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.task-meta-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.task-type-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  padding: 3px 6px;
+  background: var(--color-black);
+  color: var(--color-white);
+  display: inline-block;
+}
+
+.task-xp-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  padding: 3px 6px;
+  background: var(--color-light-1);
+  border: var(--border-thin);
+  display: inline-block;
+}
+
+.task-status-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px dashed var(--color-black);
+}
+
+.task-status-tag.danger-tag {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+.task-title {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-black);
+  word-break: break-word;
+}
+
+.task-desc {
+  font-size: 0.85rem;
+  color: var(--color-dark-3);
+  line-height: 1.35;
+}
+
+.task-meta-bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-top: 1px solid var(--color-light-2);
+  padding-top: 6px;
+}
+
+.streak-indicator {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  background: var(--color-light-1);
+  padding: 2px 6px;
+  border: var(--border-thin);
+}
+
+/* Task Actions (Delete, etc.) */
+.task-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 8px;
+}
+
+.delete-task-btn {
+  font-family: var(--font-pixel);
+  font-size: 0.8rem;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-white);
+  border: var(--border-thin);
+  box-shadow: var(--shadow-hard-sm);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.delete-task-btn:hover {
+  background: var(--color-black);
+  color: var(--color-white);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0px var(--color-black);
+}
+
+/* Completed Task Styling */
+.task-card.is-completed {
+  background: #f8f8f6;
+  border-style: dashed;
+  opacity: 0.82;
+}
+
+.task-card.is-completed .task-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+  color: var(--color-gray-dark);
+}
+
+.task-card.is-completed .task-desc {
+  text-decoration: line-through;
+  color: var(--color-gray);
+}
+
+.task-card.is-completed::before {
+  content: "[ QUEST CLEARED ]";
+  position: absolute;
+  top: 14px;
+  right: 65px;
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 4px 8px;
+  background: var(--color-black);
+  color: var(--color-white);
+  transform: rotate(-8deg);
+  border: 2px solid var(--color-white);
+  box-shadow: var(--shadow-hard-sm);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Overdue Task Highlight */
+.task-card.is-overdue {
+  border-color: var(--color-black);
+  background: #faf2f2;
+  box-shadow: 6px 6px 0px var(--color-black);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 24px;
+  border-style: dashed;
+  margin: 20px 0;
+}
+
+.ascii-art-empty {
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin-bottom: 16px;
+  display: inline-block;
+  background: var(--color-light-1);
+  padding: 16px;
+  border: var(--border-thin);
+}
+
+.empty-state-title {
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.empty-state-text {
+  font-size: 0.85rem;
+  color: var(--color-gray-dark);
+  max-width: 500px;
+  margin: 0 auto 20px;
+}
+
+/* --- Add Task Form & Modals --- */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-window {
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-width: 5px;
+  box-shadow: 12px 12px 0px var(--color-black);
+  background: var(--color-white);
+  animation: modalPop 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.9) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: var(--border-thick);
+  padding-bottom: 12px;
+  margin-bottom: 18px;
+}
+
+.modal-title {
+  font-family: var(--font-pixel);
+  font-size: 0.95rem;
+}
+
+.close-modal-btn {
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+/* Form Styling */
+.brutalist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.half-width {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+  }
+}
+
+.form-label {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  letter-spacing: 0.5px;
+}
+
+.brutalist-input {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border: var(--border-mid);
+  box-shadow: var(--shadow-hard-sm);
+  background: var(--color-white);
+  color: var(--color-black);
+  outline: none;
+  transition: all 0.1s ease;
+}
+
+.brutalist-input:focus {
+  background: #fffff8;
+  box-shadow: 5px 5px 0px var(--color-black);
+  transform: translate(-1px, -1px);
+}
+
+/* Task Type Radio Group */
+.type-selector-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 550px) {
+  .type-selector-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+.type-radio-label {
+  cursor: pointer;
+  position: relative;
+}
+
+.type-radio-label input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.type-radio-btn {
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  line-height: 1.3;
+  text-align: center;
+  padding: 12px 8px;
+  border: var(--border-mid);
+  box-shadow: var(--shadow-hard-sm);
+  background: var(--color-white);
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.type-radio-btn small {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  margin-top: 4px;
+  font-weight: bold;
+}
+
+.type-radio-label input:checked + .type-radio-btn {
+  background: var(--color-black);
+  color: var(--color-white);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px var(--color-black);
+}
+
+/* XP Stepper & Preset chips */
+.xp-input-stepper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.xp-input-stepper input {
+  width: 90px;
+}
+
+.quick-xp-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-chip {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  padding: 8px 10px;
+  background: var(--color-white);
+  border: var(--border-thin);
+  box-shadow: 2px 2px 0px var(--color-black);
+  cursor: pointer;
+}
+
+.btn-chip:hover {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+.type-rules-note {
+  font-size: 0.78rem;
+  background: var(--color-light-1);
+  border: var(--border-thin);
+  padding: 10px 14px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  border-top: var(--border-thin);
+  padding-top: 14px;
+}
+
+/* --- Floating Toast Shelf --- */
+.toast-shelf {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+  z-index: 10001;
+  max-width: 420px;
+  pointer-events: none;
+}
+
+.brutalist-toast {
+  pointer-events: auto;
+  border: var(--border-thick);
+  box-shadow: 6px 6px 0px var(--color-black);
+  padding: 14px 18px;
+  background: var(--color-white);
+  animation: toastSlideIn 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes toastSlideIn {
+  0% { transform: translateX(100%) rotate(2deg); opacity: 0; }
+  100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+}
+
+.toast-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  margin-bottom: 6px;
+}
+
+.toast-body {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.toast-success {
+  background: #ffffff;
+}
+
+.toast-damage {
+  background: var(--color-dark-1);
+  color: var(--color-white);
+}
+
+.toast-damage .toast-header-row {
+  color: var(--color-white);
+}
+
+/* --- Floating Particles / Numbers --- */
+.floating-num {
+  position: fixed;
+  font-family: var(--font-pixel);
+  font-size: 1.4rem;
+  pointer-events: none;
+  z-index: 10005;
+  animation: floatNumber 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  text-shadow: 2px 2px 0px var(--color-black);
+}
+
+.float-xp {
+  color: var(--color-white);
+  background: var(--color-black);
+  padding: 4px 8px;
+  border: var(--border-thin);
+}
+
+.float-damage {
+  color: var(--color-white);
+  background: var(--color-black);
+  padding: 4px 8px;
+  border: 3px double var(--color-white);
+}
+
+@keyframes floatNumber {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.2);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-60px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-90px) scale(0.9);
+  }
+}
+
+/* --- Special Modals (Celebration, Damage Report, Game Over) --- */
+.celebration-window {
+  text-align: center;
+  max-width: 580px;
+  border-width: 6px;
+  padding: 28px;
+  background: var(--color-white);
+}
+
+.celebration-glitch {
+  font-family: var(--font-pixel);
+  font-size: 1.2rem;
+  letter-spacing: 4px;
+}
+
+.level-up-title {
+  font-size: 2.2rem;
+  margin: 12px 0;
+}
+
+.ascii-trophy {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  line-height: 1.2;
+  margin: 16px auto;
+  background: var(--color-light-1);
+  padding: 16px;
+  border: var(--border-thin);
+  display: inline-block;
+}
+
+.level-up-body {
+  margin: 18px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.celebration-badge {
+  font-family: var(--font-pixel);
+  font-size: 1.1rem;
+}
+
+.celebration-rank {
+  font-family: var(--font-pixel);
+  font-size: 0.8rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 6px 12px;
+  display: inline-block;
+  align-self: center;
+}
+
+.celebration-perk {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+/* Damage Report Modal */
+.damage-window {
+  max-width: 580px;
+}
+
+.damage-intro {
+  font-size: 0.85rem;
+  margin-bottom: 14px;
+}
+
+.damage-stats-box {
+  background: var(--color-light-1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.damage-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+.total-damage-row {
+  border-top: var(--border-thin);
+  padding-top: 8px;
+  font-family: var(--font-pixel);
+  font-size: 0.85rem;
+}
+
+.damage-flavor {
+  font-style: italic;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 14px;
+  color: var(--color-gray-dark);
+}
+
+/* Game Over / Fainted Modal */
+.gameover-window {
+  text-align: center;
+  max-width: 540px;
+  border: 6px double var(--color-black);
+  background: var(--color-white);
+  padding: 30px;
+}
+
+.gameover-title {
+  font-family: var(--font-pixel);
+  font-size: 1.4rem;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 10px;
+  margin-bottom: 14px;
+}
+
+.ascii-skull {
+  font-family: var(--font-pixel);
+  font-size: 0.85rem;
+  line-height: 1.25;
+  margin: 16px auto;
+  display: inline-block;
+}
+
+.gameover-text {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.gameover-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Rename Modal */
+.rename-window {
+  max-width: 450px;
+}
+
+/* --- Footer --- */
+.main-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--color-white);
+}
+
+.footer-buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer-btn {
+  flex: 1;
+  min-width: 150px;
+}
+
+.file-input-label {
+  cursor: pointer;
+}
+
+.footer-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: var(--border-thin);
+  padding-top: 14px;
+  font-size: 0.7rem;
+}
+
+.system-info {
+  font-family: var(--font-pixel);
+  font-size: 0.58rem;
+  color: var(--color-dark-3);
+}
+
+.keyboard-hints {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  background: var(--color-light-2);
+  padding: 3px 6px;
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+  .app-wrapper {
+    padding: 8px 8px 32px;
+  }
+  .brutalist-panel {
+    padding: 16px;
+  }
+  .glitch-title {
+    font-size: 1.8rem;
+  }
+  .ascii-banner {
+    display: none; /* Hide wide ASCII art on small mobile screens */
+  }
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-id-card {
+    min-width: auto;
+  }
+  .action-ribbon {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ribbon-tabs {
+    justify-content: stretch;
+  }
+  .tab-btn {
+    flex: 1;
+  }
+  .ribbon-actions {
+    flex-direction: column;
+  }
+  .ribbon-actions .brutalist-btn {
+    width: 100%;
+  }
+  .task-card {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .task-checkbox-container {
+    justify-content: flex-start;
+  }
+  .task-card.is-completed::before {
+    position: static;
+    display: inline-block;
+    margin-bottom: 6px;
+    transform: none;
+  }
+}
+
+
+/* ==========================================================================
+   COLOR THEMES — Theme switcher overrides via data-theme attribute on <body>
+   Each theme redefines the CSS custom properties.
+   ========================================================================== */
+
+/* ── THEME: Cyberpunk Neon ── */
+/* Deep purple/black base with electric cyan and magenta accents */
+body[data-theme="cyberpunk"] {
+  --color-black: #0a0a1a;
+  --color-dark-1: #12122a;
+  --color-dark-2: #1a1a3a;
+  --color-dark-3: #2a2a4a;
+  --color-gray-dark: #5a4a7a;
+  --color-gray: #7a6a9a;
+  --color-gray-light: #9a8aba;
+  --color-gray-very-light: #baaada;
+  --color-light-2: #d8d0f0;
+  --color-light-1: #eae4f8;
+  --color-white: #f5f0ff;
+  --shadow-hard: 5px 5px 0px #0a0a1a;
+  --shadow-hard-lg: 8px 8px 0px #0a0a1a;
+  --shadow-hard-sm: 3px 3px 0px #0a0a1a;
+  --shadow-stacked: 4px 4px 0px #0a0a1a, 8px 8px 0px #9a8aba;
+  background-color: #0e0e24 !important;
+  background-image:
+    radial-gradient(#00fff2 1px, transparent 0),
+    radial-gradient(#ff00ff 1px, #0e0e24 0) !important;
+}
+body[data-theme="cyberpunk"] .glitch-title { color: #00fff2; }
+body[data-theme="cyberpunk"] .glitch-title::before { text-shadow: -2px 0 #ff00ff; }
+body[data-theme="cyberpunk"] .glitch-title::after { text-shadow: 2px 0 #00fff2; }
+body[data-theme="cyberpunk"] .header-tagline { background: #ff00ff; color: #0a0a1a; }
+body[data-theme="cyberpunk"] .brutalist-btn { border-color: #00fff2; }
+body[data-theme="cyberpunk"] .brutalist-btn:hover { background: #00fff2; color: #0a0a1a; }
+body[data-theme="cyberpunk"] .tab-btn.active { background: #00fff2; color: #0a0a1a; }
+body[data-theme="cyberpunk"] .hp-bar-fill { background: #ff00ff !important; }
+body[data-theme="cyberpunk"] .xp-bar-fill { background: #00fff2 !important; }
+body[data-theme="cyberpunk"] .zine-tape-top { background: #ff00ff; color: #0a0a1a; }
+body[data-theme="cyberpunk"] .badge-tag { background: #0a0a1a; color: #00fff2; border-color: #00fff2; }
+body[data-theme="cyberpunk"] .hero-rank-tag { background: #ff00ff; color: #0a0a1a; }
+body[data-theme="cyberpunk"] .toast-notification { border-color: #00fff2; }
+
+/* ── THEME: Retro Terminal (Green Phosphor) ── */
+/* Classic hacker terminal — green-on-black CRT aesthetic */
+body[data-theme="terminal"] {
+  --color-black: #001100;
+  --color-dark-1: #002200;
+  --color-dark-2: #003300;
+  --color-dark-3: #004400;
+  --color-gray-dark: #006600;
+  --color-gray: #008800;
+  --color-gray-light: #00aa00;
+  --color-gray-very-light: #00cc00;
+  --color-light-2: #00dd00;
+  --color-light-1: #00ee00;
+  --color-white: #00ff00;
+  --shadow-hard: 5px 5px 0px #001100;
+  --shadow-hard-lg: 8px 8px 0px #001100;
+  --shadow-hard-sm: 3px 3px 0px #001100;
+  --shadow-stacked: 4px 4px 0px #001100, 8px 8px 0px #006600;
+  background-color: #000800 !important;
+  background-image:
+    radial-gradient(#00ff00 1px, transparent 0),
+    radial-gradient(#004400 1px, #000800 0) !important;
+  color: #00ff00 !important;
+}
+body[data-theme="terminal"] .glitch-title { color: #00ff00; }
+body[data-theme="terminal"] .glitch-title::before { text-shadow: -2px 0 #00cc00; }
+body[data-theme="terminal"] .glitch-title::after { text-shadow: 2px 0 #00aa00; }
+body[data-theme="terminal"] .header-tagline { background: #00ff00; color: #001100; }
+body[data-theme="terminal"] .brutalist-panel { background: #001a00; border-color: #00ff00; }
+body[data-theme="terminal"] .brutalist-card { background: #001a00; border-color: #00aa00; }
+body[data-theme="terminal"] .brutalist-btn { border-color: #00ff00; color: #00ff00; background: #001a00; }
+body[data-theme="terminal"] .brutalist-btn:hover { background: #00ff00; color: #001100; }
+body[data-theme="terminal"] .tab-btn.active { background: #00ff00; color: #001100; }
+body[data-theme="terminal"] .hp-bar-fill { background: #00ff00 !important; }
+body[data-theme="terminal"] .xp-bar-fill { background: #00cc00 !important; }
+body[data-theme="terminal"] .zine-tape-top { background: #00ff00; color: #001100; }
+body[data-theme="terminal"] .badge-tag { background: #001100; color: #00ff00; border-color: #00ff00; }
+body[data-theme="terminal"] .hero-rank-tag { background: #00ff00; color: #001100; }
+body[data-theme="terminal"] .hero-id-card { background: #001a00 !important; }
+body[data-theme="terminal"] .task-card { background: #001a00 !important; border-color: #00aa00; color: #00ff00; }
+body[data-theme="terminal"] input, body[data-theme="terminal"] textarea, body[data-theme="terminal"] select { background: #001a00; color: #00ff00; border-color: #00aa00; }
+body[data-theme="terminal"] .toast-notification { border-color: #00ff00; background: #001a00; color: #00ff00; }
+
+/* ── THEME: Sunset Ember ── */
+/* Warm amber/orange tones on dark brown — cozy RPG campfire vibes */
+body[data-theme="ember"] {
+  --color-black: #1a0e05;
+  --color-dark-1: #2a1a0a;
+  --color-dark-2: #3a2510;
+  --color-dark-3: #4a3218;
+  --color-gray-dark: #7a5a35;
+  --color-gray: #9a7a50;
+  --color-gray-light: #c4a070;
+  --color-gray-very-light: #dbc090;
+  --color-light-2: #f0d8a8;
+  --color-light-1: #f8e8c0;
+  --color-white: #fff5e0;
+  --shadow-hard: 5px 5px 0px #1a0e05;
+  --shadow-hard-lg: 8px 8px 0px #1a0e05;
+  --shadow-hard-sm: 3px 3px 0px #1a0e05;
+  --shadow-stacked: 4px 4px 0px #1a0e05, 8px 8px 0px #c4a070;
+  background-color: #1f1208 !important;
+  background-image:
+    radial-gradient(#ff8c00 1px, transparent 0),
+    radial-gradient(#4a3218 1px, #1f1208 0) !important;
+}
+body[data-theme="ember"] .glitch-title { color: #ff8c00; }
+body[data-theme="ember"] .glitch-title::before { text-shadow: -2px 0 #ff4500; }
+body[data-theme="ember"] .glitch-title::after { text-shadow: 2px 0 #ffa500; }
+body[data-theme="ember"] .header-tagline { background: #ff8c00; color: #1a0e05; }
+body[data-theme="ember"] .brutalist-panel { background: #2a1a0a; border-color: #ff8c00; }
+body[data-theme="ember"] .brutalist-card { background: #2a1a0a; border-color: #c4a070; }
+body[data-theme="ember"] .brutalist-btn { border-color: #ff8c00; color: #ff8c00; background: #2a1a0a; }
+body[data-theme="ember"] .brutalist-btn:hover { background: #ff8c00; color: #1a0e05; }
+body[data-theme="ember"] .tab-btn.active { background: #ff8c00; color: #1a0e05; }
+body[data-theme="ember"] .hp-bar-fill { background: #ff4500 !important; }
+body[data-theme="ember"] .xp-bar-fill { background: #ffa500 !important; }
+body[data-theme="ember"] .zine-tape-top { background: #ff8c00; color: #1a0e05; }
+body[data-theme="ember"] .badge-tag { background: #1a0e05; color: #ff8c00; border-color: #ff8c00; }
+body[data-theme="ember"] .hero-rank-tag { background: #ff4500; color: #fff5e0; }
+body[data-theme="ember"] .hero-id-card { background: #2a1a0a !important; }
+body[data-theme="ember"] .task-card { background: #2a1a0a !important; border-color: #c4a070; color: #fff5e0; }
+body[data-theme="ember"] input, body[data-theme="ember"] textarea, body[data-theme="ember"] select { background: #2a1a0a; color: #fff5e0; border-color: #c4a070; }
+body[data-theme="ember"] .toast-notification { border-color: #ff8c00; background: #2a1a0a; color: #fff5e0; }
+
+/* ── THEME: Arctic Frost ── */
+/* Cool icy blues on white — clean, crisp winter aesthetic */
+body[data-theme="frost"] {
+  --color-black: #0a1a2e;
+  --color-dark-1: #0f2540;
+  --color-dark-2: #163050;
+  --color-dark-3: #1e3d65;
+  --color-gray-dark: #3a6090;
+  --color-gray: #5080b0;
+  --color-gray-light: #80a8d0;
+  --color-gray-very-light: #a8c8e8;
+  --color-light-2: #d0e4f5;
+  --color-light-1: #e8f0fa;
+  --color-white: #f0f6ff;
+  --shadow-hard: 5px 5px 0px #0a1a2e;
+  --shadow-hard-lg: 8px 8px 0px #0a1a2e;
+  --shadow-hard-sm: 3px 3px 0px #0a1a2e;
+  --shadow-stacked: 4px 4px 0px #0a1a2e, 8px 8px 0px #80a8d0;
+  background-color: #e0eef8 !important;
+  background-image:
+    radial-gradient(#0a1a2e 1px, transparent 0),
+    radial-gradient(#80a8d0 1px, #e0eef8 0) !important;
+}
+body[data-theme="frost"] .glitch-title { color: #0a4a8a; }
+body[data-theme="frost"] .glitch-title::before { text-shadow: -2px 0 #2090ff; }
+body[data-theme="frost"] .glitch-title::after { text-shadow: 2px 0 #60b0ff; }
+body[data-theme="frost"] .header-tagline { background: #0a4a8a; color: #f0f6ff; }
+body[data-theme="frost"] .brutalist-btn { border-color: #0a4a8a; }
+body[data-theme="frost"] .brutalist-btn:hover { background: #0a4a8a; color: #f0f6ff; }
+body[data-theme="frost"] .tab-btn.active { background: #0a4a8a; color: #f0f6ff; }
+body[data-theme="frost"] .hp-bar-fill { background: #2090ff !important; }
+body[data-theme="frost"] .xp-bar-fill { background: #0a4a8a !important; }
+body[data-theme="frost"] .zine-tape-top { background: #0a4a8a; color: #f0f6ff; }
+body[data-theme="frost"] .badge-tag { background: #0a4a8a; color: #f0f6ff; border-color: #0a4a8a; }
+body[data-theme="frost"] .hero-rank-tag { background: #2090ff; color: #0a1a2e; }
+body[data-theme="frost"] .toast-notification { border-color: #0a4a8a; }
+
+/* ── THEME: Blood Moon ── */
+/* Deep crimson/red on dark — intense dark RPG vampire aesthetic */
+body[data-theme="bloodmoon"] {
+  --color-black: #1a0505;
+  --color-dark-1: #2a0a0a;
+  --color-dark-2: #3a1010;
+  --color-dark-3: #4a1818;
+  --color-gray-dark: #7a3535;
+  --color-gray: #9a5050;
+  --color-gray-light: #c07070;
+  --color-gray-very-light: #d89090;
+  --color-light-2: #f0b0b0;
+  --color-light-1: #f8d0d0;
+  --color-white: #fff0f0;
+  --shadow-hard: 5px 5px 0px #1a0505;
+  --shadow-hard-lg: 8px 8px 0px #1a0505;
+  --shadow-hard-sm: 3px 3px 0px #1a0505;
+  --shadow-stacked: 4px 4px 0px #1a0505, 8px 8px 0px #c07070;
+  background-color: #1a0808 !important;
+  background-image:
+    radial-gradient(#cc0000 1px, transparent 0),
+    radial-gradient(#4a1818 1px, #1a0808 0) !important;
+}
+body[data-theme="bloodmoon"] .glitch-title { color: #cc0000; }
+body[data-theme="bloodmoon"] .glitch-title::before { text-shadow: -2px 0 #ff0040; }
+body[data-theme="bloodmoon"] .glitch-title::after { text-shadow: 2px 0 #880000; }
+body[data-theme="bloodmoon"] .header-tagline { background: #cc0000; color: #fff0f0; }
+body[data-theme="bloodmoon"] .brutalist-panel { background: #2a0a0a; border-color: #cc0000; }
+body[data-theme="bloodmoon"] .brutalist-card { background: #2a0a0a; border-color: #c07070; }
+body[data-theme="bloodmoon"] .brutalist-btn { border-color: #cc0000; color: #cc0000; background: #2a0a0a; }
+body[data-theme="bloodmoon"] .brutalist-btn:hover { background: #cc0000; color: #fff0f0; }
+body[data-theme="bloodmoon"] .tab-btn.active { background: #cc0000; color: #fff0f0; }
+body[data-theme="bloodmoon"] .hp-bar-fill { background: #ff0040 !important; }
+body[data-theme="bloodmoon"] .xp-bar-fill { background: #cc0000 !important; }
+body[data-theme="bloodmoon"] .zine-tape-top { background: #cc0000; color: #fff0f0; }
+body[data-theme="bloodmoon"] .badge-tag { background: #1a0505; color: #cc0000; border-color: #cc0000; }
+body[data-theme="bloodmoon"] .hero-rank-tag { background: #cc0000; color: #fff0f0; }
+body[data-theme="bloodmoon"] .hero-id-card { background: #2a0a0a !important; }
+body[data-theme="bloodmoon"] .task-card { background: #2a0a0a !important; border-color: #c07070; color: #fff0f0; }
+body[data-theme="bloodmoon"] input, body[data-theme="bloodmoon"] textarea, body[data-theme="bloodmoon"] select { background: #2a0a0a; color: #fff0f0; border-color: #c07070; }
+body[data-theme="bloodmoon"] .toast-notification { border-color: #cc0000; background: #2a0a0a; color: #fff0f0; }
+
+/* ── THEME: Synthwave ── */
+/* Vaporwave pink/purple gradient vibes — retro 80s sunset */
+body[data-theme="synthwave"] {
+  --color-black: #0f0728;
+  --color-dark-1: #1a0e3a;
+  --color-dark-2: #25144d;
+  --color-dark-3: #301a60;
+  --color-gray-dark: #5a3590;
+  --color-gray: #7a50b0;
+  --color-gray-light: #a070d0;
+  --color-gray-very-light: #c090e0;
+  --color-light-2: #e0b8f5;
+  --color-light-1: #f0d0ff;
+  --color-white: #fce8ff;
+  --shadow-hard: 5px 5px 0px #0f0728;
+  --shadow-hard-lg: 8px 8px 0px #0f0728;
+  --shadow-hard-sm: 3px 3px 0px #0f0728;
+  --shadow-stacked: 4px 4px 0px #0f0728, 8px 8px 0px #a070d0;
+  background-color: #0d0525 !important;
+  background-image:
+    radial-gradient(#ff2d95 1px, transparent 0),
+    radial-gradient(#301a60 1px, #0d0525 0) !important;
+}
+body[data-theme="synthwave"] .glitch-title { color: #ff2d95; }
+body[data-theme="synthwave"] .glitch-title::before { text-shadow: -2px 0 #00d4ff; }
+body[data-theme="synthwave"] .glitch-title::after { text-shadow: 2px 0 #ff2d95; }
+body[data-theme="synthwave"] .header-tagline { background: linear-gradient(90deg, #ff2d95, #00d4ff); color: #0f0728; }
+body[data-theme="synthwave"] .brutalist-panel { background: #1a0e3a; border-color: #ff2d95; }
+body[data-theme="synthwave"] .brutalist-card { background: #1a0e3a; border-color: #a070d0; }
+body[data-theme="synthwave"] .brutalist-btn { border-color: #ff2d95; color: #ff2d95; background: #1a0e3a; }
+body[data-theme="synthwave"] .brutalist-btn:hover { background: #ff2d95; color: #0f0728; }
+body[data-theme="synthwave"] .tab-btn.active { background: #ff2d95; color: #0f0728; }
+body[data-theme="synthwave"] .hp-bar-fill { background: #ff2d95 !important; }
+body[data-theme="synthwave"] .xp-bar-fill { background: #00d4ff !important; }
+body[data-theme="synthwave"] .zine-tape-top { background: linear-gradient(90deg, #ff2d95, #00d4ff); color: #0f0728; }
+body[data-theme="synthwave"] .badge-tag { background: #0f0728; color: #ff2d95; border-color: #ff2d95; }
+body[data-theme="synthwave"] .hero-rank-tag { background: #00d4ff; color: #0f0728; }
+body[data-theme="synthwave"] .hero-id-card { background: #1a0e3a !important; }
+body[data-theme="synthwave"] .task-card { background: #1a0e3a !important; border-color: #a070d0; color: #fce8ff; }
+body[data-theme="synthwave"] input, body[data-theme="synthwave"] textarea, body[data-theme="synthwave"] select { background: #1a0e3a; color: #fce8ff; border-color: #a070d0; }
+body[data-theme="synthwave"] .toast-notification { border-color: #ff2d95; background: #1a0e3a; color: #fce8ff; }
+
+/* ── THEME: Cyberpunk 2077 ── */
+/* Iconic Night City yellow-on-black with red danger accents */
+body[data-theme="cp2077"] {
+  --color-black: #0a0a0c;
+  --color-dark-1: #111115;
+  --color-dark-2: #1a1a20;
+  --color-dark-3: #24242c;
+  --color-gray-dark: #3a3a48;
+  --color-gray: #5a5a68;
+  --color-gray-light: #8a8a98;
+  --color-gray-very-light: #b0b0b8;
+  --color-light-2: #d0d0d5;
+  --color-light-1: #e8e8ec;
+  --color-white: #f0efe8;
+  --shadow-hard: 5px 5px 0px #0a0a0c;
+  --shadow-hard-lg: 8px 8px 0px #0a0a0c;
+  --shadow-hard-sm: 3px 3px 0px #0a0a0c;
+  --shadow-stacked: 4px 4px 0px #0a0a0c, 8px 8px 0px #3a3a48;
+  background-color: #08080c !important;
+  background-image:
+    radial-gradient(#fcee09 1px, transparent 0),
+    radial-gradient(#1a1a20 1px, #08080c 0) !important;
+  color: #f0efe8 !important;
+}
+body[data-theme="cp2077"] .glitch-title { color: #fcee09; }
+body[data-theme="cp2077"] .glitch-title::before { text-shadow: -2px 0 #ff003c; }
+body[data-theme="cp2077"] .glitch-title::after { text-shadow: 2px 0 #00f0ff; }
+body[data-theme="cp2077"] .header-tagline { background: #fcee09; color: #0a0a0c; font-weight: 900; }
+body[data-theme="cp2077"] .brutalist-panel { background: #111115; border-color: #fcee09; }
+body[data-theme="cp2077"] .brutalist-card { background: #111115; border-color: #3a3a48; }
+body[data-theme="cp2077"] .brutalist-btn { border-color: #fcee09; color: #fcee09; background: #111115; }
+body[data-theme="cp2077"] .brutalist-btn:hover { background: #fcee09; color: #0a0a0c; }
+body[data-theme="cp2077"] .tab-btn { border-color: #3a3a48; color: #8a8a98; }
+body[data-theme="cp2077"] .tab-btn.active { background: #fcee09; color: #0a0a0c; border-color: #fcee09; }
+body[data-theme="cp2077"] .hp-bar-fill { background: #ff003c !important; }
+body[data-theme="cp2077"] .xp-bar-fill { background: #fcee09 !important; }
+body[data-theme="cp2077"] .zine-tape-top { background: #fcee09; color: #0a0a0c; }
+body[data-theme="cp2077"] .badge-tag { background: #0a0a0c; color: #fcee09; border-color: #fcee09; }
+body[data-theme="cp2077"] .hero-rank-tag { background: #ff003c; color: #f0efe8; }
+body[data-theme="cp2077"] .hero-id-card { background: #111115 !important; border-color: #fcee09 !important; }
+body[data-theme="cp2077"] .task-card { background: #111115 !important; border-color: #3a3a48; color: #f0efe8; }
+body[data-theme="cp2077"] .task-card:hover { border-color: #fcee09; }
+body[data-theme="cp2077"] .hero-meta-row { color: #8a8a98; }
+body[data-theme="cp2077"] .hero-label { color: #fcee09 !important; }
+body[data-theme="cp2077"] .date-badge { background: #111115; color: #fcee09; border-color: #3a3a48; }
+body[data-theme="cp2077"] input, body[data-theme="cp2077"] textarea, body[data-theme="cp2077"] select { background: #1a1a20; color: #f0efe8; border-color: #3a3a48; }
+body[data-theme="cp2077"] input:focus, body[data-theme="cp2077"] textarea:focus { border-color: #fcee09; outline-color: #fcee09; }
+body[data-theme="cp2077"] .toast-notification { border-color: #fcee09; background: #111115; color: #f0efe8; }
+body[data-theme="cp2077"] .toast-notification.toast-danger { border-color: #ff003c; }
+body[data-theme="cp2077"] .metric-tile { background: #111115; border-color: #3a3a48; }
+body[data-theme="cp2077"] .metric-tile:hover { border-color: #fcee09; }
+body[data-theme="cp2077"] .hud-bar-label { color: #fcee09; }
+
+/* ── Theme Picker Dropdown Styling ── */
+.theme-picker-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.theme-picker-btn {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  padding: 6px 12px;
+  border: 3px solid var(--color-black);
+  background: var(--color-white);
+  color: var(--color-black);
+  cursor: pointer;
+  box-shadow: var(--shadow-hard-sm);
+  transition: transform 0.1s, box-shadow 0.1s;
+  white-space: nowrap;
+}
+
+.theme-picker-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px var(--color-black);
+}
+
+.theme-picker-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.theme-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 99999;
+  background: var(--color-white);
+  border: 3px solid var(--color-black);
+  box-shadow: var(--shadow-hard);
+  min-width: 230px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0;
+  list-style: none;
+}
+
+/* Retro brutalist scrollbar */
+.theme-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.theme-dropdown::-webkit-scrollbar-track {
+  background: var(--color-light-1);
+}
+.theme-dropdown::-webkit-scrollbar-thumb {
+  background: var(--color-black);
+  border: 1px solid var(--color-white);
+}
+
+.theme-dropdown.open {
+  display: block;
+}
+
+.theme-dropdown li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-bottom: 2px dashed var(--color-gray-very-light);
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.theme-dropdown li:last-child {
+  border-bottom: none;
+}
+
+.theme-dropdown li:hover {
+  background: var(--color-light-1);
+}
+
+.theme-dropdown li.active-theme {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+.theme-swatch {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.theme-swatch span {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-black);
+  display: inline-block;
+}
+
+</style>
+</head>
+<body class="crt-enabled">
+  <!-- CRT Scanlines & Screen Texture Overlay -->
+  <div class="crt-overlay" id="crtOverlay" aria-hidden="true"></div>
+  <div class="vignette-overlay" aria-hidden="true"></div>
+
+  <!-- Main Container -->
+  <div class="app-wrapper" id="appWrapper">
+
+    <!-- Top Ticker / Marquee Banner -->
+    <aside class="zine-tape-top" aria-label="System Marquee">
+      <div class="ticker-track">
+        <span>*** LEVEL UP v1.0.0 *** STRICT MONOCHROME SYSTEM *** OBJECT-ORIENTED HABIT FORGE *** NO CLOUD REQUIRED *** 100 XP = LEVEL UP *** PROTECT YOUR HP *** INSERT COIN TO PLAY ***</span>
+        <span>*** LEVEL UP v1.0.0 *** STRICT MONOCHROME SYSTEM *** OBJECT-ORIENTED HABIT FORGE *** NO CLOUD REQUIRED *** 100 XP = LEVEL UP *** PROTECT YOUR HP *** INSERT COIN TO PLAY ***</span>
+      </div>
+    </aside>
+
+    <!-- Header Section -->
+    <header class="main-header brutalist-panel">
+      <div class="header-top-bar">
+        <div class="badge-tag tape-effect">SYSTEM://STANDALONE_RPG</div>
+        <div class="date-badge" id="systemDateDisplay">DATE: 2026-10-13</div>
+        <div class="header-actions">
+          <div class="theme-picker-wrapper">
+            <button id="themePickerBtn" class="brutalist-btn btn-sm theme-picker-btn" title="Change color theme">🎨 THEME</button>
+            <ul class="theme-dropdown" id="themeDropdown">
+              <li data-theme="default" class="active-theme">
+                <span class="theme-swatch"><span style="background:#000"></span><span style="background:#888"></span><span style="background:#fff"></span></span>
+                Monochrome
+              </li>
+              <li data-theme="cp2077">
+                <span class="theme-swatch"><span style="background:#0a0a0c"></span><span style="background:#fcee09"></span><span style="background:#ff003c"></span></span>
+                Cyberpunk 2077 ⚡
+              </li>
+              <li data-theme="cyberpunk">
+                <span class="theme-swatch"><span style="background:#0a0a1a"></span><span style="background:#00fff2"></span><span style="background:#ff00ff"></span></span>
+                Cyberpunk Neon
+              </li>
+              <li data-theme="terminal">
+                <span class="theme-swatch"><span style="background:#001100"></span><span style="background:#00ff00"></span><span style="background:#004400"></span></span>
+                Retro Terminal
+              </li>
+              <li data-theme="ember">
+                <span class="theme-swatch"><span style="background:#1a0e05"></span><span style="background:#ff8c00"></span><span style="background:#ff4500"></span></span>
+                Sunset Ember
+              </li>
+              <li data-theme="frost">
+                <span class="theme-swatch"><span style="background:#0a1a2e"></span><span style="background:#2090ff"></span><span style="background:#e8f0fa"></span></span>
+                Arctic Frost
+              </li>
+              <li data-theme="bloodmoon">
+                <span class="theme-swatch"><span style="background:#1a0505"></span><span style="background:#cc0000"></span><span style="background:#ff0040"></span></span>
+                Blood Moon
+              </li>
+              <li data-theme="synthwave">
+                <span class="theme-swatch"><span style="background:#0f0728"></span><span style="background:#ff2d95"></span><span style="background:#00d4ff"></span></span>
+                Synthwave
+              </li>
+            </ul>
+          </div>
+          <button id="toggleCrtBtn" class="brutalist-btn btn-sm" title="Toggle retro CRT scanlines">CRT: ON</button>
+          <button id="editPlayerNameBtn" class="brutalist-btn btn-sm" title="Change Hero Name">RENAME</button>
+        </div>
+      </div>
+
+      <div class="header-content">
+        <div class="title-cluster">
+          <h1 class="glitch-title" data-text="Level Up">Level Up</h1>
+          <p class="header-tagline">Gamified productivity tracker</p>
+        </div>
+        <div class="hero-id-card brutalist-card">
+          <div class="hero-id-header">
+            <span class="pixel-icon">⚔</span>
+            <span class="hero-label">PLAYER IDENTITY</span>
+            <span class="pixel-icon">🛡</span>
+          </div>
+          <div class="hero-name-row">
+            <span class="player-name-val" id="playerNameDisplay">PLAYER 1</span>
+            <span class="hero-rank-tag" id="playerRankDisplay">NOVICE SLACKER</span>
+          </div>
+          <div class="hero-meta-row">
+            <span>DAYS ACTIVE: <strong id="daysActiveDisplay">1</strong></span>
+            <span>STATUS: <strong id="playerStatusDisplay">ALIVE &amp; GRINDING</strong></span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Player HUD Section -->
+    <section class="hud-section brutalist-panel" aria-label="Player Vital Stats">
+      <div class="panel-header-ribbon">
+        <h2>[ PLAYER VITAL METRICS ]</h2>
+        <span class="hud-indicator">// REALTIME STATS //</span>
+      </div>
+
+      <div class="bars-container">
+        <!-- Health Points Bar -->
+        <div class="stat-bar-block hp-block brutalist-card">
+          <div class="bar-title-row">
+            <span class="bar-label">
+              <span class="symbol-tag heart-tag">♥</span> HP [HEALTH POINTS]
+            </span>
+            <span class="bar-numeric" id="hpNumericDisplay">100 / 100</span>
+          </div>
+          <div class="meter-frame">
+            <div class="meter-bar hp-bar" id="hpMeterBar" style="width: 100%;">
+              <div class="meter-pattern"></div>
+            </div>
+          </div>
+          <div class="bar-subtext">
+            <span>PENALTY DRAIN IF TASKS ARE MISSED</span>
+            <span class="critical-warning" id="hpWarningTag" style="display: none;">! CRITICAL HP !</span>
+          </div>
+        </div>
+
+        <!-- Experience Points Bar -->
+        <div class="stat-bar-block xp-block brutalist-card">
+          <div class="bar-title-row">
+            <span class="bar-label">
+              <span class="symbol-tag star-tag">★</span> XP [EXPERIENCE POINTS]
+            </span>
+            <span class="bar-numeric" id="xpNumericDisplay">0 / 100</span>
+          </div>
+          <div class="meter-frame">
+            <div class="meter-bar xp-bar" id="xpMeterBar" style="width: 0%;">
+              <div class="meter-pattern"></div>
+            </div>
+          </div>
+          <div class="bar-subtext">
+            <span>100 XP = 1 LEVEL UP + FULL HP RESTORE</span>
+            <span class="xp-next-tag" id="xpToNextTag">100 XP TO LEVEL UP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card brutalist-card tilt-left">
+          <div class="metric-title">CURRENT LEVEL</div>
+          <div class="metric-value-huge" id="levelDisplay">1</div>
+          <div class="metric-sub" id="totalXpDisplay">TOTAL XP: 0</div>
+        </div>
+        <div class="metric-card brutalist-card tilt-right">
+          <div class="metric-title">COMPLETED QUESTS</div>
+          <div class="metric-value-huge" id="totalTasksCompletedDisplay">0</div>
+          <div class="metric-sub">VICTORIES WON</div>
+        </div>
+        <div class="metric-card brutalist-card tilt-left">
+          <div class="metric-title">BEST STREAK</div>
+          <div class="metric-value-huge" id="bestStreakDisplay">0🔥</div>
+          <div class="metric-sub" id="streakBonusDisplay">BONUS: 1.0x XP</div>
+        </div>
+        <div class="metric-card brutalist-card tilt-right">
+          <div class="metric-title">ACTIVE QUESTS</div>
+          <div class="metric-value-huge" id="activeTasksCountDisplay">0</div>
+          <div class="metric-sub" id="pendingPenaltiesDisplay">PENALTIES AT RISK</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics & Battle Telemetry Section -->
+    <section class="telemetry-section brutalist-panel" id="telemetrySection" aria-label="Battle Analytics & Telemetry">
+      <div class="panel-header-ribbon">
+        <div class="telemetry-header-title">
+          <h2>[ 📊 HERO TELEMETRY &amp; BATTLE CHARTS ]</h2>
+          <span class="hud-indicator">// REALTIME PERFORMANCE CHARTS &amp; XP RADAR //</span>
+        </div>
+        <div class="telemetry-controls">
+          <button id="toggleTelemetryBtn" class="brutalist-btn btn-sm" title="Toggle telemetry graphs view">CHARTS: EXPANDED</button>
+        </div>
+      </div>
+
+      <div class="telemetry-body" id="telemetryBody">
+        <!-- Upper Charts Row: 7-Day XP Trend + RPG Combat Radar -->
+        <div class="telemetry-grid">
+          <!-- Chart 1: 7-Day XP & Battle Activity Bar Chart -->
+          <div class="chart-card brutalist-card">
+            <div class="chart-card-header">
+              <div>
+                <span class="chart-badge">TIMELINE</span>
+                <h3 class="chart-title">7-DAY XP MOMENTUM</h3>
+              </div>
+              <span class="chart-stat-badge" id="chartWeeklyXpBadge">+0 XP THIS WEEK</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="xpBarChartCanvas" width="460" height="210"></canvas>
+            </div>
+            <div class="chart-legend-row">
+              <span class="chart-legend-item"><span class="legend-swatch legend-primary"></span> XP GAINED</span>
+              <span class="chart-legend-item"><span class="legend-swatch legend-dashed"></span> DAILY GOAL (50 XP)</span>
+              <span class="chart-legend-item" id="chartDailyAvgLabel">AVG: 0 XP/DAY</span>
+            </div>
+          </div>
+
+          <!-- Chart 2: RPG Attribute Hexagon / Radar Chart -->
+          <div class="chart-card brutalist-card">
+            <div class="chart-card-header">
+              <div>
+                <span class="chart-badge">HERO RADAR</span>
+                <h3 class="chart-title">COMBAT ATTRIBUTES</h3>
+              </div>
+              <span class="chart-stat-badge" id="chartCombatRatingBadge">COMBAT RATING: B</span>
+            </div>
+            <div class="chart-canvas-container radar-container">
+              <canvas id="radarChartCanvas" width="340" height="210"></canvas>
+            </div>
+            <div class="radar-attribute-chips" id="radarAttributeChips">
+              <!-- Rendered dynamically: DIS, PUN, CON, VIT, POW -->
+            </div>
+
+            <!-- Attribute Codex / Glossary -->
+            <div class="attribute-glossary" id="attributeGlossary">
+              <div class="glossary-header">
+                <span class="glossary-title">[ ATTRIBUTE CODEX // HERO SPEC ]</span>
+                <button class="codex-toggle-btn" id="toggleCodexBtn" type="button" title="Toggle Attribute Explanations">[- COLLAPSE]</button>
+              </div>
+              <div class="glossary-list" id="glossaryList">
+                <div class="glossary-item">
+                  <span class="glossary-badge">DIS</span>
+                  <div class="glossary-text">
+                    <strong>DIS (Discipline):</strong> Measures your overall task completion rate and adherence to daily routines.
+                  </div>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-badge">PUN</span>
+                  <div class="glossary-text">
+                    <strong>PUN (Punctuality):</strong> Tracks how reliably you complete your "Deadline" quests before they become overdue.
+                  </div>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-badge">CON</span>
+                  <div class="glossary-text">
+                    <strong>CON (Consistency):</strong> Reflects your ability to maintain unbroken "Habit" streaks without skipping days.
+                  </div>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-badge">VIT</span>
+                  <div class="glossary-text">
+                    <strong>VIT (Vitality):</strong> Represents your Health Point (HP) management and how well you avoid offline penalties.
+                  </div>
+                </div>
+                <div class="glossary-item">
+                  <span class="glossary-badge">POW</span>
+                  <div class="glossary-text">
+                    <strong>POW (Power):</strong> Likely tied to your XP momentum, measuring how many high-value tasks you are crushing to level up.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lower Charts Row: Quest Distribution Donut + 28-Day Habit Heatmap -->
+        <div class="telemetry-grid telemetry-grid-secondary">
+          <!-- Chart 3: Quest Ledger Composition Donut -->
+          <div class="chart-card brutalist-card">
+            <div class="chart-card-header">
+              <div>
+                <span class="chart-badge">RATIO</span>
+                <h3 class="chart-title">QUEST DISTRIBUTION</h3>
+              </div>
+              <span class="chart-stat-badge" id="chartClearRateBadge">CLEAR: 0%</span>
+            </div>
+            <div class="donut-layout">
+              <div class="chart-canvas-container donut-container">
+                <canvas id="donutChartCanvas" width="260" height="260"></canvas>
+              </div>
+              <div class="donut-breakdown-list" id="donutBreakdownList">
+                <!-- Rendered dynamically: Daily, Deadline, Habit counts & percentages -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart 4: 28-Day Habit Streak Activity Heatmap -->
+          <div class="chart-card brutalist-card">
+            <div class="chart-card-header">
+              <div>
+                <span class="chart-badge">HEATMAP</span>
+                <h3 class="chart-title">28-DAY HABIT MATRIX</h3>
+              </div>
+              <span class="chart-stat-badge" id="chartHeatmapActiveDaysBadge">0/28 ACTIVE</span>
+            </div>
+            <div class="heatmap-matrix-wrapper">
+              <div class="heatmap-days-header">
+                <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+              </div>
+              <div class="heatmap-grid" id="habitHeatmapGrid">
+                <!-- Rendered dynamically: 28 day squares -->
+              </div>
+            </div>
+            <div class="heatmap-footer">
+              <span class="heatmap-legend-label">LESS ACTIVE</span>
+              <div class="heatmap-scale-swatches">
+                <span class="scale-dot lvl-0" title="0 tasks"></span>
+                <span class="scale-dot lvl-1" title="1 task"></span>
+                <span class="scale-dot lvl-2" title="2 tasks"></span>
+                <span class="scale-dot lvl-3" title="3+ tasks"></span>
+              </div>
+              <span class="heatmap-legend-label">MORE ACTIVE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls & Action Ribbon -->
+    <section class="action-ribbon brutalist-panel">
+      <div class="ribbon-tabs" role="tablist">
+        <button class="tab-btn brutalist-btn active" data-tab="ALL" role="tab" aria-selected="true">
+          [ALL QUESTS] <span class="tab-count" id="countAll">(0)</span>
+        </button>
+        <button class="tab-btn brutalist-btn" data-tab="DAILY" role="tab" aria-selected="false">
+          [DAILY] <span class="tab-count" id="countDaily">(0)</span>
+        </button>
+        <button class="tab-btn brutalist-btn" data-tab="DEADLINE" role="tab" aria-selected="false">
+          [DEADLINES] <span class="tab-count" id="countDeadline">(0)</span>
+        </button>
+        <button class="tab-btn brutalist-btn" data-tab="HABIT" role="tab" aria-selected="false">
+          [HABITS] <span class="tab-count" id="countHabit">(0)</span>
+        </button>
+      </div>
+
+      <div class="ribbon-actions">
+        <button id="openAddTaskBtn" class="brutalist-btn btn-primary">
+          <span class="btn-icon">+</span> FORGE QUEST
+        </button>
+        <button id="simulateDayBtn" class="brutalist-btn btn-secondary" title="Advance calendar by 1 day to test offline penalty calculation">
+          <span class="btn-icon">⚡</span> PASS 24H (TEST)
+        </button>
+        <button id="healPotionBtn" class="brutalist-btn btn-secondary" title="Use 50 XP to drink a health potion and restore 35 HP">
+          <span class="btn-icon">🧪</span> POTION (+35 HP)
+        </button>
+      </div>
+    </section>
+
+    <!-- Category Explainer Notice Ribbon -->
+    <div class="category-banner brutalist-card" id="categoryExplainer">
+      <div class="category-banner-icon">[!]</div>
+      <div class="category-banner-text" id="categoryExplainerText">
+        SHOWING ALL QUESTS: Daily routines, firm deadlines, and compounding habit streaks.
+      </div>
+    </div>
+
+    <!-- Add Task Form Modal / Collapsible Drawer -->
+    <section class="modal-backdrop" id="addTaskModal" style="display: none;">
+      <div class="modal-window brutalist-card">
+        <div class="modal-header">
+          <h3 class="modal-title">/// FORGE NEW QUEST</h3>
+          <button class="close-modal-btn brutalist-btn btn-sm" id="closeAddTaskBtn">&times;</button>
+        </div>
+
+        <form id="addTaskForm" class="brutalist-form">
+          <!-- Task Type Selector -->
+          <div class="form-group">
+            <label class="form-label">QUEST CLASSIFICATION (CLASS TYPE):</label>
+            <div class="type-selector-group">
+              <label class="type-radio-label">
+                <input type="radio" name="taskType" value="DAILY" checked>
+                <span class="type-radio-btn">DAILY TASK<br><small>-10 HP IF MISSED</small></span>
+              </label>
+              <label class="type-radio-label">
+                <input type="radio" name="taskType" value="DEADLINE">
+                <span class="type-radio-btn">DEADLINE<br><small>-(5 + 3*DAYS) HP</small></span>
+              </label>
+              <label class="type-radio-label">
+                <input type="radio" name="taskType" value="HABIT">
+                <span class="type-radio-btn">HABIT STREAK<br><small>UP TO 3x MULTIPLIER</small></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Task Name -->
+          <div class="form-group">
+            <label for="taskNameInput" class="form-label">QUEST TITLE:</label>
+            <input type="text" id="taskNameInput" class="brutalist-input" placeholder="e.g. Implement polymorphic Java interfaces..." required maxlength="60">
+          </div>
+
+          <!-- Task Description -->
+          <div class="form-group">
+            <label for="taskDescInput" class="form-label">QUEST LORE &amp; OBJECTIVES (OPTIONAL):</label>
+            <textarea id="taskDescInput" class="brutalist-input" rows="2" placeholder="Explain the quest details or victory condition..." maxlength="200"></textarea>
+          </div>
+
+          <div class="form-row">
+            <!-- XP Reward -->
+            <div class="form-group half-width">
+              <label for="taskXpInput" class="form-label">XP REWARD (5 - 100):</label>
+              <div class="xp-input-stepper">
+                <input type="number" id="taskXpInput" class="brutalist-input" value="25" min="5" max="100" step="5" required>
+                <div class="quick-xp-buttons">
+                  <button type="button" class="btn-chip" data-xp="10">+10</button>
+                  <button type="button" class="btn-chip" data-xp="25">+25</button>
+                  <button type="button" class="btn-chip" data-xp="50">+50</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Deadline Field (Conditionally shown for DEADLINE) -->
+            <div class="form-group half-width" id="deadlineContainer" style="display: none;">
+              <label for="taskDeadlineInput" class="form-label">DUE DATE (DEADLINE):</label>
+              <input type="date" id="taskDeadlineInput" class="brutalist-input">
+            </div>
+          </div>
+
+          <!-- Type dynamic description note -->
+          <div class="type-rules-note brutalist-card" id="typeRulesNote">
+            <strong>DAILY TASK RULES:</strong> Resets every midnight. If left incomplete at the end of the day, player suffers a direct 10 HP penalty.
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="brutalist-btn btn-secondary" id="cancelAddTaskBtn">CANCEL</button>
+            <button type="submit" class="brutalist-btn btn-primary" id="submitAddTaskBtn">FORGE QUEST &gt;&gt;</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Task List Section -->
+    <main class="tasks-section brutalist-panel">
+      <div class="tasks-header-bar">
+        <h2 id="currentTabHeading">[ ACTIVE QUEST LOG // ALL ]</h2>
+        <div class="tasks-controls">
+          <label class="sort-label">
+            SORT:
+            <select id="taskSortSelect" class="brutalist-select">
+              <option value="NEWEST">LATEST CREATED</option>
+              <option value="XP_DESC">HIGHEST XP</option>
+              <option value="XP_ASC">LOWEST XP</option>
+              <option value="STATUS">PENDING FIRST</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <!-- Task Cards List -->
+      <div class="tasks-container" id="tasksContainer">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state brutalist-card" id="emptyState" style="display: none;">
+        <pre class="ascii-art-empty" aria-hidden="true">
+   (\_/)
+   (x.x)  [ NO ACTIVE QUESTS FOUND IN THIS LOG ]
+   (")_(")
+        </pre>
+        <h3 class="empty-state-title">YOUR LOG IS COMPLETELY EMPTY!</h3>
+        <p class="empty-state-text">No quests forged yet. Inaction breeds decay! Summon a quest to begin farming XP and leveling up.</p>
+        <button class="brutalist-btn btn-primary" id="emptyStateAddBtn">+ FORGE YOUR FIRST QUEST</button>
+      </div>
+    </main>
+
+    <!-- Footer Controls & Persistence Panel -->
+    <footer class="main-footer brutalist-panel">
+      <div class="footer-buttons-row">
+        <button id="saveGameBtn" class="brutalist-btn footer-btn" title="Save game to local browser storage">
+          <span class="btn-icon">💾</span> SAVE GAME
+        </button>
+        <button id="loadGameBtn" class="brutalist-btn footer-btn" title="Reload saved state from local storage">
+          <span class="btn-icon">📁</span> LOAD GAME
+        </button>
+        <button id="exportJsonBtn" class="brutalist-btn footer-btn" title="Export save game JSON file">
+          <span class="btn-icon">📥</span> EXPORT SAVE
+        </button>
+        <label class="brutalist-btn footer-btn file-input-label" title="Import save game JSON file">
+          <span class="btn-icon">📤</span> IMPORT SAVE
+          <input type="file" id="importJsonFileInput" accept=".json" style="display: none;">
+        </label>
+        <button id="newGameBtn" class="brutalist-btn footer-btn btn-danger" title="Wipe current save and reset game">
+          <span class="btn-icon">♻</span> NEW GAME
+        </button>
+      </div>
+
+      <div class="footer-meta-row">
+        <div class="system-info">
+          LEVEL UP v1.0.0 // STANDALONE BRUTALIST RUNTIME // LOCALSTORAGE PERSISTENT ENGINE // JAVA SE OOP MIRROR
+        </div>
+        <div class="keyboard-hints">
+          HINTS: [N] NEW QUEST | [1-4] TABS | [ESC] CLOSE MODALS
+        </div>
+      </div>
+    </footer>
+
+  </div><!-- End .app-wrapper -->
+
+  <!-- Floating Toast Notifications Container -->
+  <div class="toast-shelf" id="toastShelf" aria-live="polite"></div>
+
+  <!-- LEVEL UP Celebration Modal -->
+  <div class="modal-backdrop celebration-backdrop" id="levelUpModal" style="display: none;">
+    <div class="modal-window celebration-window brutalist-card">
+      <div class="celebration-glitch">★ ★ ★</div>
+      <h2 class="level-up-title glitch-title" data-text="LEVEL UP!">LEVEL UP!</h2>
+      <pre class="ascii-trophy" aria-hidden="true">
+       ___________
+      '._==_==_=_.'
+      .-\:      /-.
+     | (|:.     |) |
+      '-|:.     |-'
+        \::.    /
+         '::. .'
+           ) (
+         _.' '._
+        `"""""""`
+      </pre>
+      <div class="level-up-body">
+        <p class="celebration-badge">YOU HAVE ATTAINED <span id="celebrationLevelNum">LEVEL 2</span>!</p>
+        <p class="celebration-rank" id="celebrationRankTitle">RANK: APPRENTICE GRINDER</p>
+        <p class="celebration-perk">REWARD: YOUR HEALTH (HP) HAS BEEN FULLY RESTORED TO 100/100!</p>
+      </div>
+      <button class="brutalist-btn btn-primary btn-huge" id="closeLevelUpBtn">CLAIM GLORY &amp; CONTINUE &gt;&gt;</button>
+    </div>
+  </div>
+
+  <!-- Offline Damage Report Modal -->
+  <div class="modal-backdrop damage-report-backdrop" id="damageReportModal" style="display: none;">
+    <div class="modal-window brutalist-card damage-window">
+      <div class="modal-header">
+        <h3 class="modal-title">☠ OFFLINE TIME PENALTY REPORT</h3>
+        <button class="close-modal-btn brutalist-btn btn-sm" id="closeDamageReportBtn">&times;</button>
+      </div>
+      <div class="damage-content">
+        <p class="damage-intro">
+          WELCOME BACK, HERO. While you were offline, time marched on relentlessly.
+        </p>
+        <div class="damage-stats-box brutalist-card">
+          <div class="damage-row">
+            <span>DAYS PASSED OFFLINE:</span>
+            <strong id="reportDaysPassed">1 DAY(S)</strong>
+          </div>
+          <div class="damage-row">
+            <span>DAILY TASKS MISSED:</span>
+            <strong id="reportDailiesMissed">0 (-0 HP)</strong>
+          </div>
+          <div class="damage-row">
+            <span>OVERDUE DEADLINES:</span>
+            <strong id="reportDeadlinesMissed">0 (-0 HP)</strong>
+          </div>
+          <div class="damage-row">
+            <span>BROKEN HABIT STREAKS:</span>
+            <strong id="reportHabitsBroken">0 (-0 HP)</strong>
+          </div>
+          <div class="damage-row total-damage-row">
+            <span>TOTAL HEALTH DRAINED:</span>
+            <strong id="reportTotalDamage">-0 HP</strong>
+          </div>
+          <div class="damage-row">
+            <span>REMAINING HEALTH:</span>
+            <strong id="reportRemainingHp">100 / 100 HP</strong>
+          </div>
+        </div>
+        <p class="damage-flavor" id="reportFlavorText">
+          "Pain is the premier teacher of consistency."
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="brutalist-btn btn-primary" id="ackDamageReportBtn">ACKNOWLEDGE CONSEQUENCES &gt;&gt;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over / Fainted Modal -->
+  <div class="modal-backdrop gameover-backdrop" id="gameOverModal" style="display: none;">
+    <div class="modal-window brutalist-card gameover-window">
+      <h2 class="gameover-title">☠ YOU HAVE FAINTED! ☠</h2>
+      <pre class="ascii-skull" aria-hidden="true">
+       .---.
+      /     \
+     | () () |
+      \  ^  /
+       |||||
+      </pre>
+      <p class="gameover-text">
+        YOUR HEALTH POINTS HIT 0! Procrastination has claimed your mortal soul. 
+        Will you rise from the grave with a penalty phoenix revival, or surrender to oblivion?
+      </p>
+      <div class="gameover-actions">
+        <button class="brutalist-btn btn-primary btn-huge" id="revivePlayerBtn">
+          REVIVE (+50 HP / SACRIFICE 25 XP)
+        </button>
+        <button class="brutalist-btn btn-danger" id="faintedNewGameBtn">
+          ACCEPT DEFEAT &amp; RESET (NEW GAME)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player Rename Modal -->
+  <div class="modal-backdrop" id="renameModal" style="display: none;">
+    <div class="modal-window brutalist-card rename-window">
+      <div class="modal-header">
+        <h3 class="modal-title">/// EDIT HERO IDENTITY</h3>
+        <button class="close-modal-btn brutalist-btn btn-sm" id="closeRenameBtn">&times;</button>
+      </div>
+      <div class="form-group" style="margin-top: 15px;">
+        <label for="renamePlayerInput" class="form-label">ENTER NEW HERO NAME:</label>
+        <input type="text" id="renamePlayerInput" class="brutalist-input" maxlength="24" placeholder="e.g. TASK_SLAYER_99">
+      </div>
+      <div class="modal-footer">
+        <button class="brutalist-btn btn-secondary" id="cancelRenameBtn">CANCEL</button>
+        <button class="brutalist-btn btn-primary" id="saveRenameBtn">CONFIRM RENAME</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+/**
+ * LEVEL UP // 8-BIT BRUTALIST PRODUCTIVITY ENGINE
+ * OOP POLYMORPHIC HABIT FORGE & QUEST TRACKER
+ * Pure Standalone Client-Side Architecture with LocalStorage Persistence
+ */
+
+// ============================================================================
+// 1. DATE UTILITIES & HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Returns today's date formatted as YYYY-MM-DD
+ */
+function getTodayDateString(offsetDays = 0) {
+  const d = new Date();
+  if (offsetDays !== 0) {
+    d.setDate(d.getDate() + offsetDays);
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Calculates day difference between two YYYY-MM-DD strings (date2 - date1)
+ */
+function dateDiffInDays(dateStr1, dateStr2) {
+  if (!dateStr1 || !dateStr2) return 0;
+  const [y1, m1, d1] = dateStr1.split('-').map(Number);
+  const [y2, m2, d2] = dateStr2.split('-').map(Number);
+  const utc1 = Date.UTC(y1, m1 - 1, d1);
+  const utc2 = Date.UTC(y2, m2 - 1, d2);
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.floor((utc2 - utc1) / msPerDay);
+}
+
+/**
+ * Generates unique ID for quests
+ */
+function generateId() {
+  return 'quest_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
+}
+
+// ============================================================================
+// 2. POLYMORPHIC TASK ENGINE (CLASS HIERARCHY)
+// ============================================================================
+
+/**
+ * Abstract Base Class: Task
+ * Mirrors Java SE polymorphic task model
+ */
+class Task {
+  constructor(id, name, description = '', xpReward = 20, completed = false, type = 'TASK', createdAt = null) {
+    this.id = id || generateId();
+    this.name = name;
+    this.description = description;
+    this.xpReward = Number(xpReward) || 20;
+    this.completed = Boolean(completed);
+    this.type = type;
+    this.createdAt = createdAt || getTodayDateString();
+  }
+
+  /**
+   * Calculates actual XP awarded upon task completion
+   */
+  calculateRewardXP() {
+    return this.xpReward;
+  }
+
+  /**
+   * Evaluates penalty inflicted if this task was neglected
+   * Polymorphic method overridden by subclasses
+   */
+  calculatePenalty(currentDateStr) {
+    return 0;
+  }
+
+  /**
+   * Resets status for a new day if applicable
+   */
+  processDailyReset(currentDateStr) {
+    // Default base does not reset
+  }
+
+  /**
+   * Serializes task to plain object for JSON storage
+   */
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name,
+      description: this.description,
+      xpReward: this.xpReward,
+      completed: this.completed,
+      type: this.type,
+      createdAt: this.createdAt
+    };
+  }
+
+  /**
+   * Factory method to deserialize JSON into the correct Task subclass
+   */
+  static fromJSON(data) {
+    if (!data || !data.type) return null;
+    switch (data.type) {
+      case 'DAILY':
+        return DailyTask.fromJSON(data);
+      case 'DEADLINE':
+        return DeadlineTask.fromJSON(data);
+      case 'HABIT':
+        return HabitTask.fromJSON(data);
+      default:
+        return new Task(data.id, data.name, data.description, data.xpReward, data.completed, data.type, data.createdAt);
+    }
+  }
+}
+
+/**
+ * Subclass: DailyTask
+ * Routine quest that resets every midnight.
+ * Penalty: Inflicts flat 10 HP penalty per missed day if incomplete.
+ */
+class DailyTask extends Task {
+  constructor(id, name, description = '', xpReward = 20, completed = false, lastResetDate = null, createdAt = null) {
+    super(id, name, description, xpReward, completed, 'DAILY', createdAt);
+    this.lastResetDate = lastResetDate || getTodayDateString();
+  }
+
+  /**
+   * Daily tasks inflict 10 HP per day missed if left incomplete
+   */
+  calculatePenalty(currentDateStr) {
+    if (this.completed) return 0;
+    const daysMissed = Math.max(0, dateDiffInDays(this.lastResetDate, currentDateStr));
+    return daysMissed * 10;
+  }
+
+  /**
+   * Resets completed status for the next day
+   */
+  processDailyReset(currentDateStr) {
+    this.completed = false;
+    this.lastResetDate = currentDateStr;
+  }
+
+  toJSON() {
+    const data = super.toJSON();
+    data.lastResetDate = this.lastResetDate;
+    return data;
+  }
+
+  static fromJSON(data) {
+    return new DailyTask(
+      data.id,
+      data.name,
+      data.description,
+      data.xpReward,
+      data.completed,
+      data.lastResetDate,
+      data.createdAt
+    );
+  }
+}
+
+/**
+ * Subclass: DeadlineTask
+ * Critical quest with a firm due date.
+ * Penalty: Escalating penalty of 5 + 3 * daysOverdue HP if neglected.
+ */
+class DeadlineTask extends Task {
+  constructor(id, name, description = '', xpReward = 35, completed = false, deadline = null, createdAt = null) {
+    super(id, name, description, xpReward, completed, 'DEADLINE', createdAt);
+    this.deadline = deadline || getTodayDateString(1); // Defaults to tomorrow
+  }
+
+  /**
+   * Days remaining until deadline (can be negative if overdue)
+   */
+  daysRemaining(currentDateStr) {
+    return dateDiffInDays(currentDateStr, this.deadline);
+  }
+
+  /**
+   * Checks if deadline has expired without completion
+   */
+  isOverdue(currentDateStr) {
+    if (this.completed) return false;
+    return this.daysRemaining(currentDateStr) < 0;
+  }
+
+  /**
+   * Days overdue past deadline
+   */
+  getDaysOverdue(currentDateStr) {
+    if (!this.isOverdue(currentDateStr)) return 0;
+    return Math.abs(this.daysRemaining(currentDateStr));
+  }
+
+  /**
+   * Escalating penalty formula: 5 HP base + 3 HP per overdue day
+   */
+  calculatePenalty(currentDateStr) {
+    if (this.completed) return 0;
+    const overdueDays = this.getDaysOverdue(currentDateStr);
+    if (overdueDays <= 0) return 0;
+    return 5 + (3 * overdueDays);
+  }
+
+  toJSON() {
+    const data = super.toJSON();
+    data.deadline = this.deadline;
+    return data;
+  }
+
+  static fromJSON(data) {
+    return new DeadlineTask(
+      data.id,
+      data.name,
+      data.description,
+      data.xpReward,
+      data.completed,
+      data.deadline,
+      data.createdAt
+    );
+  }
+}
+
+/**
+ * Subclass: HabitTask
+ * Compounding habit quest that tracks streaks and awards scaling XP multipliers.
+ * Multiplier formula: 1 + Math.min(streak * 0.15, 2.0) -> Capped at 3.0x multiplier!
+ * Penalty: 15 HP penalty on streak break if a day is skipped.
+ */
+class HabitTask extends Task {
+  constructor(id, name, description = '', xpReward = 25, completed = false, streak = 0, lastCompletedDate = null, createdAt = null) {
+    super(id, name, description, xpReward, completed, 'HABIT', createdAt);
+    this.streak = Number(streak) || 0;
+    this.lastCompletedDate = lastCompletedDate || null;
+  }
+
+  /**
+   * Scaling combo multiplier: 1.0x up to 3.0x
+   */
+  getMultiplier() {
+    const mult = 1 + Math.min(this.streak * 0.15, 2.0);
+    return Math.round(mult * 100) / 100;
+  }
+
+  /**
+   * Multiplies base XP by current streak multiplier
+   */
+  calculateRewardXP() {
+    const mult = this.getMultiplier();
+    return Math.round(this.xpReward * mult);
+  }
+
+  /**
+   * Evaluates streak breakage and penalty.
+   * If more than 1 full day elapsed since last completion, streak breaks!
+   */
+  evaluateStreakBreak(currentDateStr) {
+    if (!this.lastCompletedDate) {
+      return { broken: false, penalty: 0 };
+    }
+    const daysSince = dateDiffInDays(this.lastCompletedDate, currentDateStr);
+    if (daysSince > 1 && this.streak > 0) {
+      return { broken: true, penalty: 15, prevStreak: this.streak };
+    }
+    return { broken: false, penalty: 0 };
+  }
+
+  /**
+   * Resets completed status at dawn for fresh daily habit check-in
+   */
+  processDailyReset(currentDateStr) {
+    // If it was checked in yesterday, reset checkbox so player can check in again today
+    if (this.lastCompletedDate !== currentDateStr) {
+      this.completed = false;
+    }
+  }
+
+  toJSON() {
+    const data = super.toJSON();
+    data.streak = this.streak;
+    data.lastCompletedDate = this.lastCompletedDate;
+    return data;
+  }
+
+  static fromJSON(data) {
+    return new HabitTask(
+      data.id,
+      data.name,
+      data.description,
+      data.xpReward,
+      data.completed,
+      data.streak,
+      data.lastCompletedDate,
+      data.createdAt
+    );
+  }
+}
+
+// ============================================================================
+// 3. PLAYER STATE ENGINE
+// ============================================================================
+
+/**
+ * PlayerState Class
+ * Manages player progression, stats, inventory of tasks, and RPG mechanics.
+ */
+class PlayerState {
+  constructor(playerName = 'HERO_1', xp = 0, hp = 100, level = 1, totalTasksCompleted = 0, lastLoginDate = null, daysActive = 1, tasks = [], history = null) {
+    this.playerName = playerName;
+    this.xp = Math.max(0, Number(xp) || 0);
+    this.hp = Math.max(0, Math.min(100, Number(hp) || 100));
+    this.level = Math.max(1, Number(level) || 1);
+    this.totalTasksCompleted = Math.max(0, Number(totalTasksCompleted) || 0);
+    this.lastLoginDate = lastLoginDate || getTodayDateString();
+    this.daysActive = Math.max(1, Number(daysActive) || 1);
+    this.tasks = tasks; // Array of polymorphic Task instances
+    this.history = history && typeof history === 'object' ? history : this.generateInitialHistory();
+  }
+
+  /**
+   * Seeds realistic initial 7-day battle history if starting fresh
+   */
+  generateInitialHistory() {
+    const hist = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = getTodayDateString(-i);
+      const isPast = i > 0;
+      hist[d] = {
+        xp: isPast ? Math.floor(20 + Math.random() * 45) : 0,
+        tasksCompleted: isPast ? Math.floor(1 + Math.random() * 3) : 0,
+        hp: 100
+      };
+    }
+    return hist;
+  }
+
+  /**
+   * Logs or updates daily XP and task activity in history
+   */
+  recordActivity(dateStr, xpGain, taskDelta = 1) {
+    if (!this.history) this.history = {};
+    if (!this.history[dateStr]) {
+      this.history[dateStr] = { xp: 0, tasksCompleted: 0, hp: this.hp };
+    }
+    this.history[dateStr].xp = Math.max(0, (this.history[dateStr].xp || 0) + xpGain);
+    this.history[dateStr].tasksCompleted = Math.max(0, (this.history[dateStr].tasksCompleted || 0) + taskDelta);
+    this.history[dateStr].hp = this.hp;
+  }
+
+  /**
+   * Calculates player rank / RPG title based on current level
+   */
+  getRankTitle() {
+    if (this.level >= 10) return 'ASCENDED GRANDMASTER';
+    if (this.level >= 8)  return 'PRODUCTIVITY OVERLORD';
+    if (this.level >= 6)  return 'CODE PALADIN';
+    if (this.level >= 5)  return 'TASK DESTROYER';
+    if (this.level >= 4)  return 'DUNGEON CRAWLER';
+    if (this.level >= 3)  return 'HABIT WARRIOR';
+    if (this.level >= 2)  return 'APPRENTICE GRINDER';
+    return 'NOVICE SLACKER';
+  }
+
+  /**
+   * Highest streak achieved among active habit tasks
+   */
+  getBestStreak() {
+    let max = 0;
+    this.tasks.forEach(t => {
+      if (t instanceof HabitTask && t.streak > max) {
+        max = t.streak;
+      }
+    });
+    return max;
+  }
+
+  /**
+   * Adds a new polymorphic Task instance
+   */
+  addTask(task) {
+    this.tasks.unshift(task);
+  }
+
+  /**
+   * Removes a task by ID
+   */
+  deleteTask(taskId) {
+    this.tasks = this.tasks.filter(t => t.id !== taskId);
+  }
+
+  /**
+   * Finds task by ID
+   */
+  getTask(taskId) {
+    return this.tasks.find(t => t.id === taskId);
+  }
+
+  /**
+   * Serializes full player state for storage
+   */
+  toJSON() {
+    return {
+      playerName: this.playerName,
+      xp: this.xp,
+      hp: this.hp,
+      level: this.level,
+      totalTasksCompleted: this.totalTasksCompleted,
+      lastLoginDate: this.lastLoginDate,
+      daysActive: this.daysActive,
+      tasks: this.tasks.map(t => t.toJSON()),
+      history: this.history
+    };
+  }
+
+  /**
+   * Rehydrates full PlayerState instance from plain object
+   */
+  static fromJSON(data) {
+    if (!data) return new PlayerState();
+    const tasks = Array.isArray(data.tasks)
+      ? data.tasks.map(t => Task.fromJSON(t)).filter(Boolean)
+      : [];
+    return new PlayerState(
+      data.playerName || 'HERO_1',
+      data.xp || 0,
+      data.hp !== undefined ? data.hp : 100,
+      data.level || 1,
+      data.totalTasksCompleted || 0,
+      data.lastLoginDate || getTodayDateString(),
+      data.daysActive || 1,
+      tasks,
+      data.history || null
+    );
+  }
+}
+
+// ============================================================================
+// 4. GAME CONTROLLER & UI APPLICATION
+// ============================================================================
+
+class GameController {
+  constructor() {
+    this.STORAGE_KEY = 'LEVEL_UP_SAVE_DATA';
+    this.simulatedCurrentDate = getTodayDateString(); // Allows testing day advancement
+    this.activeTab = 'ALL';
+    this.currentSort = 'NEWEST';
+    this.player = null;
+
+    // DOM Elements Cache
+    this.dom = {};
+
+    // Chart.js Instances
+    this.chartInstances = {
+      xpBar: null,
+      radar: null,
+      donut: null
+    };
+  }
+
+  /**
+   * Boot Sequence
+   */
+  init() {
+    this.cacheDomElements();
+    this.bindEvents();
+    this.loadSavedTheme();
+    this.loadOrInitializePlayer();
+    this.processOfflinePenalties();
+    this.renderAll();
+
+    // Welcome Notification
+    this.showToast(
+      'SYSTEM BOOT OK',
+      `Welcome back, ${this.player.playerName}. System ready. Insert effort to level up!`,
+      'success'
+    );
+  }
+
+  cacheDomElements() {
+    this.dom.systemDateDisplay = document.getElementById('systemDateDisplay');
+    this.dom.playerNameDisplay = document.getElementById('playerNameDisplay');
+    this.dom.playerRankDisplay = document.getElementById('playerRankDisplay');
+    this.dom.daysActiveDisplay = document.getElementById('daysActiveDisplay');
+    this.dom.playerStatusDisplay = document.getElementById('playerStatusDisplay');
+
+    // HUD Bars & Metrics
+    this.dom.hpMeterBar = document.getElementById('hpMeterBar');
+    this.dom.hpNumericDisplay = document.getElementById('hpNumericDisplay');
+    this.dom.hpWarningTag = document.getElementById('hpWarningTag');
+    this.dom.xpMeterBar = document.getElementById('xpMeterBar');
+    this.dom.xpNumericDisplay = document.getElementById('xpNumericDisplay');
+    this.dom.xpToNextTag = document.getElementById('xpToNextTag');
+
+    this.dom.levelDisplay = document.getElementById('levelDisplay');
+    this.dom.totalXpDisplay = document.getElementById('totalXpDisplay');
+    this.dom.totalTasksCompletedDisplay = document.getElementById('totalTasksCompletedDisplay');
+    this.dom.bestStreakDisplay = document.getElementById('bestStreakDisplay');
+    this.dom.streakBonusDisplay = document.getElementById('streakBonusDisplay');
+    this.dom.activeTasksCountDisplay = document.getElementById('activeTasksCountDisplay');
+    this.dom.pendingPenaltiesDisplay = document.getElementById('pendingPenaltiesDisplay');
+
+    // Tabs & Counters
+    this.dom.tabButtons = document.querySelectorAll('.tab-btn');
+    this.dom.countAll = document.getElementById('countAll');
+    this.dom.countDaily = document.getElementById('countDaily');
+    this.dom.countDeadline = document.getElementById('countDeadline');
+    this.dom.countHabit = document.getElementById('countHabit');
+    this.dom.categoryExplainerText = document.getElementById('categoryExplainerText');
+
+    // Task Log
+    this.dom.currentTabHeading = document.getElementById('currentTabHeading');
+    this.dom.taskSortSelect = document.getElementById('taskSortSelect');
+    this.dom.tasksContainer = document.getElementById('tasksContainer');
+    this.dom.emptyState = document.getElementById('emptyState');
+    this.dom.emptyStateAddBtn = document.getElementById('emptyStateAddBtn');
+
+    // Add Task Modal
+    this.dom.openAddTaskBtn = document.getElementById('openAddTaskBtn');
+    this.dom.addTaskModal = document.getElementById('addTaskModal');
+    this.dom.closeAddTaskBtn = document.getElementById('closeAddTaskBtn');
+    this.dom.cancelAddTaskBtn = document.getElementById('cancelAddTaskBtn');
+    this.dom.addTaskForm = document.getElementById('addTaskForm');
+    this.dom.taskNameInput = document.getElementById('taskNameInput');
+    this.dom.taskDescInput = document.getElementById('taskDescInput');
+    this.dom.taskXpInput = document.getElementById('taskXpInput');
+    this.dom.taskDeadlineInput = document.getElementById('taskDeadlineInput');
+    this.dom.deadlineContainer = document.getElementById('deadlineContainer');
+    this.dom.typeRulesNote = document.getElementById('typeRulesNote');
+
+    // Modals
+    this.dom.levelUpModal = document.getElementById('levelUpModal');
+    this.dom.closeLevelUpBtn = document.getElementById('closeLevelUpBtn');
+    this.dom.celebrationLevelNum = document.getElementById('celebrationLevelNum');
+    this.dom.celebrationRankTitle = document.getElementById('celebrationRankTitle');
+
+    this.dom.damageReportModal = document.getElementById('damageReportModal');
+    this.dom.closeDamageReportBtn = document.getElementById('closeDamageReportBtn');
+    this.dom.ackDamageReportBtn = document.getElementById('ackDamageReportBtn');
+    this.dom.reportDaysPassed = document.getElementById('reportDaysPassed');
+    this.dom.reportDailiesMissed = document.getElementById('reportDailiesMissed');
+    this.dom.reportDeadlinesMissed = document.getElementById('reportDeadlinesMissed');
+    this.dom.reportHabitsBroken = document.getElementById('reportHabitsBroken');
+    this.dom.reportTotalDamage = document.getElementById('reportTotalDamage');
+    this.dom.reportRemainingHp = document.getElementById('reportRemainingHp');
+    this.dom.reportFlavorText = document.getElementById('reportFlavorText');
+
+    this.dom.gameOverModal = document.getElementById('gameOverModal');
+    this.dom.revivePlayerBtn = document.getElementById('revivePlayerBtn');
+    this.dom.faintedNewGameBtn = document.getElementById('faintedNewGameBtn');
+
+    this.dom.renameModal = document.getElementById('renameModal');
+    this.dom.editPlayerNameBtn = document.getElementById('editPlayerNameBtn');
+    this.dom.closeRenameBtn = document.getElementById('closeRenameBtn');
+    this.dom.cancelRenameBtn = document.getElementById('cancelRenameBtn');
+    this.dom.saveRenameBtn = document.getElementById('saveRenameBtn');
+    this.dom.renamePlayerInput = document.getElementById('renamePlayerInput');
+
+    // Footer & Actions
+    this.dom.saveGameBtn = document.getElementById('saveGameBtn');
+    this.dom.loadGameBtn = document.getElementById('loadGameBtn');
+    this.dom.exportJsonBtn = document.getElementById('exportJsonBtn');
+    this.dom.importJsonFileInput = document.getElementById('importJsonFileInput');
+    this.dom.newGameBtn = document.getElementById('newGameBtn');
+    this.dom.simulateDayBtn = document.getElementById('simulateDayBtn');
+    this.dom.healPotionBtn = document.getElementById('healPotionBtn');
+    this.dom.toggleCrtBtn = document.getElementById('toggleCrtBtn');
+    this.dom.toastShelf = document.getElementById('toastShelf');
+
+    // Theme Picker
+    this.dom.themePickerBtn = document.getElementById('themePickerBtn');
+    this.dom.themeDropdown = document.getElementById('themeDropdown');
+
+    // Telemetry & Battle Charts
+    this.dom.telemetrySection = document.getElementById('telemetrySection');
+    this.dom.telemetryBody = document.getElementById('telemetryBody');
+    this.dom.toggleTelemetryBtn = document.getElementById('toggleTelemetryBtn');
+    this.dom.xpBarChartCanvas = document.getElementById('xpBarChartCanvas');
+    this.dom.chartWeeklyXpBadge = document.getElementById('chartWeeklyXpBadge');
+    this.dom.chartDailyAvgLabel = document.getElementById('chartDailyAvgLabel');
+    this.dom.radarChartCanvas = document.getElementById('radarChartCanvas');
+    this.dom.chartCombatRatingBadge = document.getElementById('chartCombatRatingBadge');
+    this.dom.radarAttributeChips = document.getElementById('radarAttributeChips');
+    this.dom.donutChartCanvas = document.getElementById('donutChartCanvas');
+    this.dom.chartClearRateBadge = document.getElementById('chartClearRateBadge');
+    this.dom.donutBreakdownList = document.getElementById('donutBreakdownList');
+    this.dom.habitHeatmapGrid = document.getElementById('habitHeatmapGrid');
+    this.dom.chartHeatmapActiveDaysBadge = document.getElementById('chartHeatmapActiveDaysBadge');
+    this.dom.toggleCodexBtn = document.getElementById('toggleCodexBtn');
+    this.dom.glossaryList = document.getElementById('glossaryList');
+  }
+
+  bindEvents() {
+    // Tab switching
+    this.dom.tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.dom.tabButtons.forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        this.activeTab = btn.dataset.tab;
+        this.updateTabHeadingAndExplainer();
+        this.renderTasks();
+      });
+    });
+
+    // Task Sorting
+    this.dom.taskSortSelect.addEventListener('change', (e) => {
+      this.currentSort = e.target.value;
+      this.renderTasks();
+    });
+
+    // Add Task Modal Controls
+    this.dom.openAddTaskBtn.addEventListener('click', () => this.openAddTaskModal());
+    this.dom.emptyStateAddBtn.addEventListener('click', () => this.openAddTaskModal());
+    this.dom.closeAddTaskBtn.addEventListener('click', () => this.closeAddTaskModal());
+    this.dom.cancelAddTaskBtn.addEventListener('click', () => this.closeAddTaskModal());
+
+    // Task Type Radio change in form
+    const typeRadios = this.dom.addTaskForm.querySelectorAll('input[name="taskType"]');
+    typeRadios.forEach(radio => {
+      radio.addEventListener('change', () => this.handleTaskTypeChange(radio.value));
+    });
+
+    // XP Preset Buttons
+    const xpChips = this.dom.addTaskForm.querySelectorAll('.btn-chip');
+    xpChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        this.dom.taskXpInput.value = chip.dataset.xp;
+      });
+    });
+
+    // Form Submission
+    this.dom.addTaskForm.addEventListener('submit', (e) => this.handleAddTaskSubmit(e));
+
+    // Footer Persistence Actions
+    this.dom.saveGameBtn.addEventListener('click', () => this.saveGame(true));
+    this.dom.loadGameBtn.addEventListener('click', () => this.manualLoadGame());
+    this.dom.exportJsonBtn.addEventListener('click', () => this.exportGameJson());
+    this.dom.importJsonFileInput.addEventListener('change', (e) => this.importGameJson(e));
+    this.dom.newGameBtn.addEventListener('click', () => this.promptNewGame());
+
+    // Game Action Buttons
+    this.dom.simulateDayBtn.addEventListener('click', () => this.simulateDayAdvance());
+    this.dom.healPotionBtn.addEventListener('click', () => this.drinkHealthPotion());
+    this.dom.toggleCrtBtn.addEventListener('click', () => this.toggleCrtEffect());
+
+    // Theme Picker
+    this.dom.themePickerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.dom.themeDropdown.classList.toggle('open');
+    });
+    this.dom.themeDropdown.querySelectorAll('li').forEach(item => {
+      item.addEventListener('click', () => {
+        const theme = item.dataset.theme;
+        this.setTheme(theme);
+        this.dom.themeDropdown.classList.remove('open');
+      });
+    });
+    document.addEventListener('click', () => {
+      this.dom.themeDropdown.classList.remove('open');
+    });
+
+    // Telemetry Collapse / Expand
+    if (this.dom.toggleTelemetryBtn) {
+      this.dom.toggleTelemetryBtn.addEventListener('click', () => {
+        const isCollapsed = this.dom.telemetryBody.classList.toggle('collapsed');
+        this.dom.toggleTelemetryBtn.textContent = isCollapsed ? 'CHARTS: COLLAPSED' : 'CHARTS: EXPANDED';
+        if (!isCollapsed) {
+          this.renderAllCharts();
+        }
+      });
+    }
+
+    // Attribute Codex Toggle
+    if (this.dom.toggleCodexBtn && this.dom.glossaryList) {
+      this.dom.toggleCodexBtn.addEventListener('click', () => {
+        const isCollapsed = this.dom.glossaryList.classList.toggle('collapsed');
+        this.dom.toggleCodexBtn.textContent = isCollapsed ? '[+ EXPAND]' : '[- COLLAPSE]';
+      });
+    }
+
+    // Modal Close Buttons
+    this.dom.closeLevelUpBtn.addEventListener('click', () => {
+      this.dom.levelUpModal.style.display = 'none';
+    });
+    this.dom.closeDamageReportBtn.addEventListener('click', () => {
+      this.dom.damageReportModal.style.display = 'none';
+    });
+    this.dom.ackDamageReportBtn.addEventListener('click', () => {
+      this.dom.damageReportModal.style.display = 'none';
+    });
+
+    // Fainted / Game Over handlers
+    this.dom.revivePlayerBtn.addEventListener('click', () => this.revivePlayer());
+    this.dom.faintedNewGameBtn.addEventListener('click', () => {
+      this.dom.gameOverModal.style.display = 'none';
+      this.promptNewGame(true);
+    });
+
+    // Rename Modal
+    this.dom.editPlayerNameBtn.addEventListener('click', () => {
+      this.dom.renamePlayerInput.value = this.player.playerName;
+      this.dom.renameModal.style.display = 'flex';
+      this.dom.renamePlayerInput.focus();
+    });
+    this.dom.closeRenameBtn.addEventListener('click', () => {
+      this.dom.renameModal.style.display = 'none';
+    });
+    this.dom.cancelRenameBtn.addEventListener('click', () => {
+      this.dom.renameModal.style.display = 'none';
+    });
+    this.dom.saveRenameBtn.addEventListener('click', () => this.savePlayerRename());
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.dom.addTaskModal.style.display = 'none';
+        this.dom.levelUpModal.style.display = 'none';
+        this.dom.damageReportModal.style.display = 'none';
+        this.dom.renameModal.style.display = 'none';
+      }
+      // Quick key 'N' for new quest when not typing in an input
+      if ((e.key === 'n' || e.key === 'N') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+        e.preventDefault();
+        this.openAddTaskModal();
+      }
+      // Quick numbers 1 - 4 for tabs
+      if (['1', '2', '3', '4'].includes(e.key) && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+        const tabs = ['ALL', 'DAILY', 'DEADLINE', 'HABIT'];
+        const targetTab = tabs[parseInt(e.key) - 1];
+        const btn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
+        if (btn) btn.click();
+      }
+    });
+  }
+
+  // ==========================================================================
+  // STATE PERSISTENCE & INITIALIZATION
+  // ==========================================================================
+
+  loadOrInitializePlayer() {
+    const rawData = localStorage.getItem(this.STORAGE_KEY);
+    if (rawData) {
+      try {
+        const parsed = JSON.parse(rawData);
+        this.player = PlayerState.fromJSON(parsed);
+        // Sync simulated date if stored
+        if (this.player.lastLoginDate) {
+          this.simulatedCurrentDate = this.player.lastLoginDate;
+        }
+        return;
+      } catch (err) {
+        console.error('Error parsing save data from localStorage:', err);
+      }
+    }
+    // No save found: create fresh default player with starter quests
+    this.initializeFreshState('TASK_HERO_1');
+  }
+
+  initializeFreshState(playerName = 'TASK_HERO_1') {
+    this.simulatedCurrentDate = getTodayDateString();
+    this.player = new PlayerState(playerName, 0, 100, 1, 0, this.simulatedCurrentDate, 1, []);
+
+    // Seed starter polymorphic quests
+    this.player.addTask(new DailyTask(
+      generateId(),
+      'Hydrate: Drink 2 Liters of Water',
+      'Essential daily health buff. Resets midnight. -10 HP if neglected.',
+      15,
+      false,
+      this.simulatedCurrentDate
+    ));
+
+    this.player.addTask(new DeadlineTask(
+      generateId(),
+      'Submit TSDL Polymorphic Lab Assignment',
+      'Demonstrate Java inheritance, file serialization, and date math.',
+      50,
+      false,
+      getTodayDateString(1)
+    ));
+
+    this.player.addTask(new HabitTask(
+      generateId(),
+      'Deep Focus Coding Session (45m)',
+      'Unbroken concentration forge. Multiplier scales up to 3.0x XP!',
+      30,
+      false,
+      2, // Starter streak of 2 days
+      getTodayDateString(-1)
+    ));
+
+    this.player.addTask(new DailyTask(
+      generateId(),
+      'Walk 10,000 Steps / Exercise',
+      'Maintain physical durability. Restores mind and body.',
+      20,
+      false,
+      this.simulatedCurrentDate
+    ));
+
+    this.saveGame(false);
+  }
+
+  saveGame(notify = false) {
+    if (!this.player) return;
+    this.player.lastLoginDate = this.simulatedCurrentDate;
+    try {
+      const serialized = JSON.stringify(this.player.toJSON(), null, 2);
+      localStorage.setItem(this.STORAGE_KEY, serialized);
+      if (notify) {
+        this.showToast('SAVED TO DISK', 'Player state successfully written to localStorage!', 'success');
+      }
+    } catch (e) {
+      console.error('Save failed:', e);
+      this.showToast('SAVE ERROR', 'Failed to write save state to localStorage.', 'damage');
+    }
+  }
+
+  manualLoadGame() {
+    const rawData = localStorage.getItem(this.STORAGE_KEY);
+    if (!rawData) {
+      this.showToast('LOAD FAILED', 'No save game detected in local storage.', 'damage');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(rawData);
+      this.player = PlayerState.fromJSON(parsed);
+      this.simulatedCurrentDate = this.player.lastLoginDate || getTodayDateString();
+      this.renderAll();
+      this.showToast('GAME LOADED', `Welcome back, ${this.player.playerName}. Save state restored!`, 'success');
+    } catch (e) {
+      this.showToast('CORRUPT SAVE', 'Failed to parse saved game data.', 'damage');
+    }
+  }
+
+  promptNewGame(force = false) {
+    if (!force) {
+      const confirmReset = confirm('DANGER: Start a NEW GAME? This will wipe your current character, XP, and active quests!');
+      if (!confirmReset) return;
+    }
+    const heroName = prompt('ENTER YOUR HERO NAME:', 'TASK_WARRIOR') || 'HERO_1';
+    this.initializeFreshState(heroName.trim());
+    this.renderAll();
+    this.showToast('NEW GAME STARTED', `All systems rebooted. Forge ahead, ${this.player.playerName}!`, 'success');
+  }
+
+  exportGameJson() {
+    if (!this.player) return;
+    const jsonString = JSON.stringify(this.player.toJSON(), null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `levelup_save_${this.player.playerName}_Lvl${this.player.level}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.showToast('EXPORT SUCCESS', 'Save file exported as JSON!', 'success');
+  }
+
+  importGameJson(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        this.player = PlayerState.fromJSON(parsed);
+        this.simulatedCurrentDate = this.player.lastLoginDate || getTodayDateString();
+        this.saveGame(false);
+        this.renderAll();
+        this.showToast('IMPORT SUCCESS', `Loaded ${this.player.playerName} from JSON save file!`, 'success');
+      } catch (err) {
+        this.showToast('IMPORT ERROR', 'Invalid JSON file format.', 'damage');
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input so same file can be selected again
+    event.target.value = '';
+  }
+
+  // ==========================================================================
+  // OFFLINE PENALTY ENGINE (DATE DIFFERENCE DISPATCH)
+  // ==========================================================================
+
+  processOfflinePenalties() {
+    if (!this.player) return;
+
+    const lastLogin = this.player.lastLoginDate;
+    const today = this.simulatedCurrentDate;
+    const daysMissed = dateDiffInDays(lastLogin, today);
+
+    // If no days were missed, no penalties to apply
+    if (daysMissed <= 0) {
+      this.player.lastLoginDate = today;
+      this.saveGame(false);
+      return;
+    }
+
+    let dailyDamage = 0;
+    let deadlineDamage = 0;
+    let habitDamage = 0;
+    let brokenHabitsCount = 0;
+    let incompleteDailiesCount = 0;
+    let overdueDeadlinesCount = 0;
+
+    // 1. Process Daily Tasks (10 HP penalty each per day missed)
+    this.player.tasks.forEach(task => {
+      if (task instanceof DailyTask) {
+        if (!task.completed) {
+          incompleteDailiesCount++;
+          dailyDamage += 10 * daysMissed;
+        }
+        // Reset daily task status for today
+        task.processDailyReset(today);
+      }
+    });
+
+    // 2. Process Deadline Tasks (5 + 3 * daysOverdue HP)
+    this.player.tasks.forEach(task => {
+      if (task instanceof DeadlineTask) {
+        if (!task.completed && task.isOverdue(today)) {
+          overdueDeadlinesCount++;
+          deadlineDamage += task.calculatePenalty(today);
+        }
+      }
+    });
+
+    // 3. Process Habit Tasks (15 HP penalty and streak reset on streak break)
+    this.player.tasks.forEach(task => {
+      if (task instanceof HabitTask) {
+        const breakReport = task.evaluateStreakBreak(today);
+        if (breakReport.broken) {
+          brokenHabitsCount++;
+          habitDamage += breakReport.penalty;
+          task.streak = 0; // Streak broken!
+        }
+        task.processDailyReset(today);
+      }
+    });
+
+    const totalDamage = dailyDamage + deadlineDamage + habitDamage;
+
+    // Apply stats update
+    this.player.daysActive += daysMissed;
+    this.player.lastLoginDate = today;
+
+    if (totalDamage > 0) {
+      this.player.hp = Math.max(0, this.player.hp - totalDamage);
+      this.saveGame(false);
+
+      // Display Damage Report Modal
+      this.showDamageReportModal({
+        daysPassed: daysMissed,
+        dailiesMissed: incompleteDailiesCount,
+        dailyDamage,
+        deadlinesMissed: overdueDeadlinesCount,
+        deadlineDamage,
+        habitsBroken: brokenHabitsCount,
+        habitDamage,
+        totalDamage,
+        remainingHp: this.player.hp
+      });
+
+      this.shakeScreen();
+      this.animateHPLoss(totalDamage);
+
+      // Check Game Over
+      if (this.player.hp <= 0) {
+        this.triggerGameOver();
+      }
+    } else {
+      // Days passed without damage!
+      this.saveGame(false);
+      this.showToast('TIME ADVANCED', `${daysMissed} day(s) elapsed. No active penalties triggered.`, 'success');
+    }
+  }
+
+  showDamageReportModal(report) {
+    this.dom.reportDaysPassed.textContent = `${report.daysPassed} DAY(S)`;
+    this.dom.reportDailiesMissed.textContent = `${report.dailiesMissed} (-${report.dailyDamage} HP)`;
+    this.dom.reportDeadlinesMissed.textContent = `${report.deadlinesMissed} (-${report.deadlineDamage} HP)`;
+    this.dom.reportHabitsBroken.textContent = `${report.habitsBroken} (-${report.habitDamage} HP)`;
+    this.dom.reportTotalDamage.textContent = `-${report.totalDamage} HP`;
+    this.dom.reportRemainingHp.textContent = `${report.remainingHp} / 100 HP`;
+
+    const flavorQuotes = [
+      '"Discipline is choosing between what you want now and what you want most."',
+      '"Pain is the premier teacher of consistency."',
+      '"Procrastination is an assassin that attacks your vital HP."',
+      '"The price of inaction compounds exponentially."'
+    ];
+    this.dom.reportFlavorText.textContent = flavorQuotes[Math.floor(Math.random() * flavorQuotes.length)];
+    this.dom.damageReportModal.style.display = 'flex';
+  }
+
+  // ==========================================================================
+  // SIMULATION & DEBUG HELPERS
+  // ==========================================================================
+
+  simulateDayAdvance() {
+    // Advance current simulated calendar date by +1 day
+    const [y, m, d] = this.simulatedCurrentDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    dateObj.setDate(dateObj.getDate() + 1);
+    const newYear = dateObj.getFullYear();
+    const newMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const newDay = String(dateObj.getDate()).padStart(2, '0');
+    this.simulatedCurrentDate = `${newYear}-${newMonth}-${newDay}`;
+
+    this.showToast('CALENDAR ADVANCED', `Time warped forward +24 hours! Evaluating offline rules...`, 'damage');
+    this.processOfflinePenalties();
+    this.renderAll();
+  }
+
+  drinkHealthPotion() {
+    if (this.player.hp >= 100) {
+      this.showToast('FULL HEALTH', 'Your HP is already at max (100/100)! Save the potion.', 'success');
+      return;
+    }
+    const oldHp = this.player.hp;
+    this.player.hp = Math.min(100, this.player.hp + 35);
+    const healed = this.player.hp - oldHp;
+    this.saveGame(false);
+    this.renderAll();
+    this.showToast('POTION CONSUMED', `Gulp! Consumed restorative elixir. Restored +${healed} HP!`, 'success');
+  }
+
+  revivePlayer() {
+    this.player.hp = 50;
+    // Deduct 25 XP penalty if available
+    this.player.xp = Math.max(0, this.player.xp - 25);
+    this.dom.gameOverModal.style.display = 'none';
+    this.saveGame(false);
+    this.renderAll();
+    this.showToast('RESURRECTION!', 'You crawled back from the abyss with 50 HP! Do not falter again.', 'success');
+  }
+
+  triggerGameOver() {
+    setTimeout(() => {
+      this.dom.gameOverModal.style.display = 'flex';
+    }, 400);
+  }
+
+  toggleCrtEffect() {
+    document.body.classList.toggle('crt-enabled');
+    const isCrt = document.body.classList.contains('crt-enabled');
+    this.dom.toggleCrtBtn.textContent = isCrt ? 'CRT: ON' : 'CRT: OFF';
+  }
+
+  /**
+   * Sets the active color theme and persists to localStorage.
+   * @param {string} themeName - Theme identifier (default, cyberpunk, terminal, ember, frost, bloodmoon, synthwave)
+   */
+  setTheme(themeName) {
+    const themeNames = {
+      'default': 'Monochrome',
+      'cyberpunk': 'Cyberpunk Neon',
+      'terminal': 'Retro Terminal',
+      'ember': 'Sunset Ember',
+      'frost': 'Arctic Frost',
+      'bloodmoon': 'Blood Moon',
+      'synthwave': 'Synthwave',
+      'cp2077': 'Cyberpunk 2077'
+    };
+
+    // Apply theme to body
+    if (themeName === 'default') {
+      document.body.removeAttribute('data-theme');
+    } else {
+      document.body.setAttribute('data-theme', themeName);
+    }
+
+    // Update dropdown active state
+    this.dom.themeDropdown.querySelectorAll('li').forEach(li => {
+      li.classList.toggle('active-theme', li.dataset.theme === themeName);
+    });
+
+    // Persist theme choice
+    localStorage.setItem('levelup_theme', themeName);
+
+    // Redraw charts with new theme colors
+    this.renderAllCharts();
+
+    // Show toast
+    this.showToast('THEME EQUIPPED', `${themeNames[themeName] || themeName} palette activated!`, 'success');
+  }
+
+  /**
+   * Loads the saved theme from localStorage on boot.
+   */
+  loadSavedTheme() {
+    const saved = localStorage.getItem('levelup_theme');
+    if (saved && saved !== 'default') {
+      document.body.setAttribute('data-theme', saved);
+      this.dom.themeDropdown.querySelectorAll('li').forEach(li => {
+        li.classList.toggle('active-theme', li.dataset.theme === saved);
+      });
+    }
+  }
+
+  savePlayerRename() {
+    const newName = this.dom.renamePlayerInput.value.trim();
+    if (newName) {
+      this.player.playerName = newName;
+      this.saveGame(false);
+      this.renderPlayerHUD();
+      this.dom.renameModal.style.display = 'none';
+      this.showToast('HERO RENAMED', `Identity acknowledged as ${newName}!`, 'success');
+    }
+  }
+
+  // ==========================================================================
+  // TASK INTERACTIONS (COMPLETE, UNCOMPLETE, DELETE)
+  // ==========================================================================
+
+  toggleTaskComplete(taskId) {
+    const task = this.player.getTask(taskId);
+    if (!task) return;
+
+    if (!task.completed) {
+      this.completeTask(task);
+    } else {
+      this.uncompleteTask(task);
+    }
+  }
+
+  completeTask(task) {
+    task.completed = true;
+
+    // Calculate XP reward with polymorphic logic
+    let awardedXp = task.calculateRewardXP();
+
+    // Habit task streak logic
+    if (task instanceof HabitTask) {
+      task.streak += 1;
+      task.lastCompletedDate = this.simulatedCurrentDate;
+      awardedXp = task.calculateRewardXP(); // Re-eval with incremented streak
+    }
+
+    // Award XP to player
+    this.player.xp += awardedXp;
+    this.player.totalTasksCompleted += 1;
+
+    // Record activity in history for battle telemetry charts
+    this.player.recordActivity(this.simulatedCurrentDate, awardedXp, 1);
+
+    // Visual feedback
+    const cardElem = document.querySelector(`.task-card[data-task-id="${task.id}"]`);
+    if (cardElem) {
+      this.animateXPGain(awardedXp, cardElem);
+    }
+
+    // RPG Flavor Toast
+    if (task instanceof HabitTask) {
+      const mult = task.getMultiplier();
+      this.showToast(
+        'HABIT CHECK-IN!',
+        `Combo x${task.streak}! Multiplier: ${mult}x. Awarded +${awardedXp} XP!`,
+        'success'
+      );
+    } else if (task instanceof DeadlineTask) {
+      this.showToast(
+        'DEADLINE SECURED!',
+        `Critical mission cleared ahead of ruin! Awarded +${awardedXp} XP!`,
+        'success'
+      );
+    } else {
+      this.showToast(
+        'DAILY CLEARED!',
+        `Routine completed! Prevented -10 HP penalty. Awarded +${awardedXp} XP!`,
+        'success'
+      );
+    }
+
+    // Check Level Up progression
+    this.checkLevelUp();
+
+    this.saveGame(false);
+    this.renderAll();
+  }
+
+  uncompleteTask(task) {
+    task.completed = false;
+
+    // Revert XP
+    const revertedXp = task.calculateRewardXP();
+    this.player.xp = Math.max(0, this.player.xp - revertedXp);
+    this.player.totalTasksCompleted = Math.max(0, this.player.totalTasksCompleted - 1);
+
+    // Revert activity in history for battle telemetry charts
+    this.player.recordActivity(this.simulatedCurrentDate, -revertedXp, -1);
+
+    // Habit revert
+    if (task instanceof HabitTask) {
+      task.streak = Math.max(0, task.streak - 1);
+    }
+
+    this.showToast('QUEST REOPENED', `Reopened "${task.name}". Withdrew -${revertedXp} XP.`, 'damage');
+    this.saveGame(false);
+    this.renderAll();
+  }
+
+  deleteTask(taskId) {
+    const task = this.player.getTask(taskId);
+    if (!task) return;
+    const taskName = task.name;
+    this.player.deleteTask(taskId);
+    this.saveGame(false);
+    this.renderAll();
+    this.showToast('QUEST DISCARDED', `Destroyed "${taskName}" from quest ledger.`, 'damage');
+  }
+
+  checkLevelUp() {
+    // Level formula: 100 XP per level
+    const targetLevel = Math.floor(this.player.xp / 100) + 1;
+    if (targetLevel > this.player.level) {
+      const oldLevel = this.player.level;
+      this.player.level = targetLevel;
+      this.player.hp = 100; // Full heal reward!
+
+      // Trigger Celebration Modal
+      this.dom.celebrationLevelNum.textContent = `LEVEL ${targetLevel}`;
+      this.dom.celebrationRankTitle.textContent = `RANK: ${this.player.getRankTitle()}`;
+      this.dom.levelUpModal.style.display = 'flex';
+
+      // Visual flash
+      document.body.classList.add('flash-damage');
+      setTimeout(() => document.body.classList.remove('flash-damage'), 300);
+
+      this.showToast(
+        '★ LEVEL UP! ★',
+        `Ascended from Lvl ${oldLevel} to Level ${targetLevel}! HP fully restored to 100!`,
+        'success'
+      );
+    }
+  }
+
+  // ==========================================================================
+  // ADD TASK MODAL & FORM LOGIC
+  // ==========================================================================
+
+  openAddTaskModal() {
+    this.dom.taskNameInput.value = '';
+    this.dom.taskDescInput.value = '';
+    this.dom.taskXpInput.value = '25';
+    this.dom.taskDeadlineInput.value = getTodayDateString(1);
+
+    // Sync selected radio with current active tab
+    let defaultType = 'DAILY';
+    if (this.activeTab === 'DEADLINE') defaultType = 'DEADLINE';
+    if (this.activeTab === 'HABIT') defaultType = 'HABIT';
+
+    const radio = this.dom.addTaskForm.querySelector(`input[name="taskType"][value="${defaultType}"]`);
+    if (radio) radio.checked = true;
+    this.handleTaskTypeChange(defaultType);
+
+    this.dom.addTaskModal.style.display = 'flex';
+    this.dom.taskNameInput.focus();
+  }
+
+  closeAddTaskModal() {
+    this.dom.addTaskModal.style.display = 'none';
+  }
+
+  handleTaskTypeChange(type) {
+    if (type === 'DEADLINE') {
+      this.dom.deadlineContainer.style.display = 'flex';
+      this.dom.taskDeadlineInput.required = true;
+      this.dom.typeRulesNote.innerHTML = `<strong>DEADLINE QUEST RULES:</strong> Firm due date required. If overdue, inflicts escalating penalty: <code>-(5 + 3 * daysOverdue) HP</code>!`;
+    } else if (type === 'HABIT') {
+      this.dom.deadlineContainer.style.display = 'none';
+      this.dom.taskDeadlineInput.required = false;
+      this.dom.typeRulesNote.innerHTML = `<strong>HABIT STREAK RULES:</strong> Build daily consistency! Each day increments your combo multiplier up to <code>3.0x XP</code>! Missing a day breaks your streak and inflicts <code>-15 HP</code>!`;
+    } else {
+      this.dom.deadlineContainer.style.display = 'none';
+      this.dom.taskDeadlineInput.required = false;
+      this.dom.typeRulesNote.innerHTML = `<strong>DAILY QUEST RULES:</strong> Resets every midnight. If left incomplete at the end of the day, player suffers a direct <code>-10 HP</code> penalty!`;
+    }
+  }
+
+  handleAddTaskSubmit(e) {
+    e.preventDefault();
+    const name = this.dom.taskNameInput.value.trim();
+    if (!name) return;
+
+    const desc = this.dom.taskDescInput.value.trim();
+    const xpReward = parseInt(this.dom.taskXpInput.value, 10) || 20;
+    const type = this.dom.addTaskForm.querySelector('input[name="taskType"]:checked').value;
+
+    let newTask;
+    if (type === 'DAILY') {
+      newTask = new DailyTask(generateId(), name, desc, xpReward, false, this.simulatedCurrentDate);
+    } else if (type === 'DEADLINE') {
+      const deadline = this.dom.taskDeadlineInput.value || getTodayDateString(1);
+      newTask = new DeadlineTask(generateId(), name, desc, xpReward, false, deadline);
+    } else if (type === 'HABIT') {
+      newTask = new HabitTask(generateId(), name, desc, xpReward, false, 0, null);
+    }
+
+    this.player.addTask(newTask);
+    this.saveGame(false);
+    this.closeAddTaskModal();
+    this.renderAll();
+
+    this.showToast('QUEST FORGED!', `Forged new [${type}] quest: "${name}" (+${xpReward} XP)`, 'success');
+  }
+
+  // ==========================================================================
+  // RENDERING ENGINE
+  // ==========================================================================
+
+  renderAll() {
+    this.renderHeaderAndDate();
+    this.renderPlayerHUD();
+    this.renderTabCounters();
+    this.renderTasks();
+    this.renderAllCharts();
+  }
+
+  renderHeaderAndDate() {
+    this.dom.systemDateDisplay.textContent = `SYSTEM DATE: ${this.simulatedCurrentDate}`;
+    this.dom.playerNameDisplay.textContent = this.player.playerName;
+    this.dom.playerRankDisplay.textContent = this.player.getRankTitle();
+    this.dom.daysActiveDisplay.textContent = this.player.daysActive;
+
+    if (this.player.hp <= 0) {
+      this.dom.playerStatusDisplay.textContent = 'FAINTED (0 HP)';
+    } else if (this.player.hp <= 25) {
+      this.dom.playerStatusDisplay.textContent = 'CRITICAL HEALTH';
+    } else {
+      this.dom.playerStatusDisplay.textContent = 'ALIVE & GRINDING';
+    }
+  }
+
+  renderPlayerHUD() {
+    // 1. Health Points Bar
+    const hp = this.player.hp;
+    this.dom.hpMeterBar.style.width = `${hp}%`;
+    this.dom.hpNumericDisplay.textContent = `${hp} / 100`;
+
+    if (hp <= 25) {
+      this.dom.hpWarningTag.style.display = 'inline-block';
+      this.dom.hpMeterBar.style.background = '#000000';
+    } else {
+      this.dom.hpWarningTag.style.display = 'none';
+    }
+
+    // 2. Experience Points Bar
+    const totalXp = this.player.xp;
+    const xpInLevel = totalXp % 100;
+    const xpToNext = 100 - xpInLevel;
+
+    this.dom.xpMeterBar.style.width = `${xpInLevel}%`;
+    this.dom.xpNumericDisplay.textContent = `${xpInLevel} / 100`;
+    this.dom.xpToNextTag.textContent = `${xpToNext} XP TO LEVEL ${this.player.level + 1}`;
+
+    // 3. Quick Metrics Grid
+    this.dom.levelDisplay.textContent = this.player.level;
+    this.dom.totalXpDisplay.textContent = `TOTAL XP: ${totalXp}`;
+    this.dom.totalTasksCompletedDisplay.textContent = this.player.totalTasksCompleted;
+
+    const bestStreak = this.player.getBestStreak();
+    this.dom.bestStreakDisplay.textContent = `${bestStreak}🔥`;
+    const streakMult = Math.round((1 + Math.min(bestStreak * 0.15, 2.0)) * 100) / 100;
+    this.dom.streakBonusDisplay.textContent = `BONUS: ${streakMult}x XP`;
+
+    const activeQuests = this.player.tasks.filter(t => !t.completed).length;
+    this.dom.activeTasksCountDisplay.textContent = activeQuests;
+
+    // Potential penalties at risk today
+    let potentialDmg = 0;
+    this.player.tasks.forEach(t => {
+      if (!t.completed) {
+        if (t instanceof DailyTask) potentialDmg += 10;
+        if (t instanceof DeadlineTask && t.isOverdue(this.simulatedCurrentDate)) {
+          potentialDmg += t.calculatePenalty(this.simulatedCurrentDate);
+        }
+      }
+    });
+    this.dom.pendingPenaltiesDisplay.textContent = potentialDmg > 0 ? `-${potentialDmg} HP AT RISK` : 'NO RISK';
+  }
+
+  renderTabCounters() {
+    const total = this.player.tasks.length;
+    const dailies = this.player.tasks.filter(t => t instanceof DailyTask).length;
+    const deadlines = this.player.tasks.filter(t => t instanceof DeadlineTask).length;
+    const habits = this.player.tasks.filter(t => t instanceof HabitTask).length;
+
+    this.dom.countAll.textContent = `(${total})`;
+    this.dom.countDaily.textContent = `(${dailies})`;
+    this.dom.countDeadline.textContent = `(${deadlines})`;
+    this.dom.countHabit.textContent = `(${habits})`;
+  }
+
+  updateTabHeadingAndExplainer() {
+    const map = {
+      'ALL': {
+        heading: '[ ACTIVE QUEST LOG // ALL ]',
+        explainer: 'SHOWING ALL QUESTS: Daily routines, firm deadlines, and compounding habit streaks.'
+      },
+      'DAILY': {
+        heading: '[ ACTIVE QUEST LOG // DAILY ]',
+        explainer: 'DAILY QUESTS: Resets every midnight. Incomplete quests inflict -10 HP damage per missed day!'
+      },
+      'DEADLINE': {
+        heading: '[ ACTIVE QUEST LOG // DEADLINES ]',
+        explainer: 'DEADLINES: High-stakes targets with escalating penalties: -(5 + 3*daysOverdue) HP if neglected!'
+      },
+      'HABIT': {
+        heading: '[ ACTIVE QUEST LOG // HABIT STREAKS ]',
+        explainer: 'HABIT STREAKS: Daily consistency compounds! Multipliers up to 3.0x XP! Skipping a day breaks streak (-15 HP).'
+      }
+    };
+    const current = map[this.activeTab] || map['ALL'];
+    this.dom.currentTabHeading.textContent = current.heading;
+    this.dom.categoryExplainerText.textContent = current.explainer;
+  }
+
+  renderTasks() {
+    this.dom.tasksContainer.innerHTML = '';
+
+    // Filter by active tab
+    let filtered = this.player.tasks.filter(t => {
+      if (this.activeTab === 'ALL') return true;
+      if (this.activeTab === 'DAILY') return t instanceof DailyTask;
+      if (this.activeTab === 'DEADLINE') return t instanceof DeadlineTask;
+      if (this.activeTab === 'HABIT') return t instanceof HabitTask;
+      return true;
+    });
+
+    // Sort tasks
+    filtered.sort((a, b) => {
+      if (this.currentSort === 'NEWEST') {
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      }
+      if (this.currentSort === 'XP_DESC') {
+        return b.calculateRewardXP() - a.calculateRewardXP();
+      }
+      if (this.currentSort === 'XP_ASC') {
+        return a.calculateRewardXP() - b.calculateRewardXP();
+      }
+      if (this.currentSort === 'STATUS') {
+        return (a.completed === b.completed) ? 0 : a.completed ? 1 : -1;
+      }
+      return 0;
+    });
+
+    // Toggle Empty State
+    if (filtered.length === 0) {
+      this.dom.emptyState.style.display = 'block';
+      return;
+    } else {
+      this.dom.emptyState.style.display = 'none';
+    }
+
+    // Render cards
+    filtered.forEach(task => {
+      const card = this.createTaskCardElement(task);
+      this.dom.tasksContainer.appendChild(card);
+    });
+  }
+
+  createTaskCardElement(task) {
+    const card = document.createElement('article');
+    card.className = `task-card brutalist-card ${task.completed ? 'is-completed' : ''}`;
+    card.dataset.taskId = task.id;
+
+    // Check overdue state for deadline tasks
+    let isOverdue = false;
+    let deadlineMetaHtml = '';
+    if (task instanceof DeadlineTask) {
+      isOverdue = task.isOverdue(this.simulatedCurrentDate);
+      if (isOverdue) {
+        card.classList.add('is-overdue');
+        const daysOver = task.getDaysOverdue(this.simulatedCurrentDate);
+        const penalty = task.calculatePenalty(this.simulatedCurrentDate);
+        deadlineMetaHtml = `
+          <span class="task-status-tag danger-tag">
+            OVERDUE (${daysOver}D) // RISK: -${penalty} HP
+          </span>
+        `;
+      } else {
+        const remaining = task.daysRemaining(this.simulatedCurrentDate);
+        deadlineMetaHtml = `
+          <span class="task-status-tag">
+            DUE: ${task.deadline} (${remaining === 0 ? 'DUE TODAY!' : remaining + ' DAYS LEFT'})
+          </span>
+        `;
+      }
+    }
+
+    // Habit Streak Indicator HTML
+    let habitMetaHtml = '';
+    if (task instanceof HabitTask) {
+      const mult = task.getMultiplier();
+      habitMetaHtml = `
+        <span class="streak-indicator">
+          STREAK: ${task.streak}🔥 (COMBO BONUS: ${mult}x)
+        </span>
+      `;
+    }
+
+    // Daily Task Indicator HTML
+    let dailyMetaHtml = '';
+    if (task instanceof DailyTask) {
+      dailyMetaHtml = `
+        <span class="task-status-tag">
+          RESETS MIDNIGHT // -10 HP IF MISSED
+        </span>
+      `;
+    }
+
+    const rewardXP = task.calculateRewardXP();
+
+    card.innerHTML = `
+      <div class="task-checkbox-container">
+        <input 
+          type="checkbox" 
+          class="brutalist-checkbox" 
+          aria-label="Complete task"
+          ${task.completed ? 'checked' : ''}
+        >
+      </div>
+
+      <div class="task-card-body">
+        <div class="task-meta-top">
+          <span class="task-type-badge">${task.type}</span>
+          <span class="task-xp-badge">+${rewardXP} XP</span>
+          ${deadlineMetaHtml}
+          ${dailyMetaHtml}
+        </div>
+
+        <h3 class="task-title">${this.escapeHtml(task.name)}</h3>
+        ${task.description ? `<p class="task-desc">${this.escapeHtml(task.description)}</p>` : ''}
+
+        <div class="task-meta-bottom">
+          <span>CREATED: ${task.createdAt}</span>
+          ${habitMetaHtml}
+        </div>
+      </div>
+
+      <div class="task-actions">
+        <button class="delete-task-btn brutalist-btn" title="Delete quest" aria-label="Delete quest">
+          X
+        </button>
+      </div>
+    `;
+
+    // Event Listeners for Card
+    const checkbox = card.querySelector('.brutalist-checkbox');
+    checkbox.addEventListener('change', () => this.toggleTaskComplete(task.id));
+
+    const deleteBtn = card.querySelector('.delete-task-btn');
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.deleteTask(task.id);
+    });
+
+    return card;
+  }
+
+  // ==========================================================================
+  // JUICE, VISUAL FEEDBACK & TOASTS
+  // ==========================================================================
+
+  showToast(title, message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `brutalist-toast toast-${type}`;
+    toast.innerHTML = `
+      <div class="toast-header-row">
+        <span>[ ${title} ]</span>
+        <small>${new Date().toLocaleTimeString()}</small>
+      </div>
+      <div class="toast-body">${this.escapeHtml(message)}</div>
+    `;
+
+    this.dom.toastShelf.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  animateXPGain(amount, targetElem) {
+    const rect = targetElem.getBoundingClientRect();
+    const float = document.createElement('div');
+    float.className = 'floating-num float-xp';
+    float.textContent = `+${amount} XP!`;
+    float.style.left = `${rect.left + rect.width / 2 - 40}px`;
+    float.style.top = `${rect.top + 10}px`;
+    document.body.appendChild(float);
+
+    setTimeout(() => float.remove(), 1200);
+  }
+
+  animateHPLoss(damage) {
+    const float = document.createElement('div');
+    float.className = 'floating-num float-damage';
+    float.textContent = `-${damage} HP!`;
+    float.style.left = `50%`;
+    float.style.top = `35%`;
+    document.body.appendChild(float);
+
+    // Screen flash
+    document.body.classList.add('flash-damage');
+    setTimeout(() => document.body.classList.remove('flash-damage'), 250);
+
+    setTimeout(() => float.remove(), 1200);
+  }
+
+  shakeScreen() {
+    document.body.classList.add('screen-shaking');
+    setTimeout(() => {
+      document.body.classList.remove('screen-shaking');
+    }, 400);
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ==========================================================================
+  // BATTLE TELEMETRY, CHARTS & VISUALS ENGINE
+  // ==========================================================================
+
+  getThemeChartColors() {
+    const theme = document.body.getAttribute('data-theme') || 'default';
+    switch (theme) {
+      case 'cp2077':
+        return {
+          primary: '#fcee09',
+          secondary: '#00f0ff',
+          danger: '#ff003c',
+          bg: '#111115',
+          cardBg: '#1a1a20',
+          text: '#f0efe8',
+          muted: '#8a8a98',
+          grid: '#3a3a48'
+        };
+      case 'cyberpunk':
+        return {
+          primary: '#00fff2',
+          secondary: '#ff00ff',
+          danger: '#ff0055',
+          bg: '#12122a',
+          cardBg: '#1a1a3a',
+          text: '#f5f0ff',
+          muted: '#9a8aba',
+          grid: '#2a2a4a'
+        };
+      case 'terminal':
+        return {
+          primary: '#00ff00',
+          secondary: '#00cc00',
+          danger: '#ff3333',
+          bg: '#001a00',
+          cardBg: '#002200',
+          text: '#00ff00',
+          muted: '#008800',
+          grid: '#004400'
+        };
+      case 'ember':
+        return {
+          primary: '#ff8c00',
+          secondary: '#ffa500',
+          danger: '#ff4500',
+          bg: '#2a1a0a',
+          cardBg: '#3a2510',
+          text: '#fff5e0',
+          muted: '#9a7a50',
+          grid: '#4a3218'
+        };
+      case 'frost':
+        return {
+          primary: '#0a4a8a',
+          secondary: '#2090ff',
+          danger: '#d02020',
+          bg: '#e8f0fa',
+          cardBg: '#ffffff',
+          text: '#0a1a2e',
+          muted: '#5080b0',
+          grid: '#d0e4f5'
+        };
+      case 'bloodmoon':
+        return {
+          primary: '#cc0000',
+          secondary: '#ff0040',
+          danger: '#ff3366',
+          bg: '#2a0a0a',
+          cardBg: '#3a1010',
+          text: '#fff0f0',
+          muted: '#9a5050',
+          grid: '#4a1818'
+        };
+      case 'synthwave':
+        return {
+          primary: '#ff2d95',
+          secondary: '#00d4ff',
+          danger: '#ff0055',
+          bg: '#1a0e3a',
+          cardBg: '#25144d',
+          text: '#fce8ff',
+          muted: '#a070d0',
+          grid: '#301a60'
+        };
+      default: // Monochrome
+        return {
+          primary: '#000000',
+          secondary: '#555555',
+          danger: '#000000',
+          bg: '#ffffff',
+          cardBg: '#eeeeee',
+          text: '#000000',
+          muted: '#777777',
+          grid: '#cccccc'
+        };
+    }
+  }
+
+  renderAllCharts() {
+    this.drawXpBarChart();
+    this.drawRadarChart();
+    this.drawDonutChart();
+    this.renderHabitHeatmap();
+  }
+
+  drawXpBarChart() {
+    const canvas = this.dom.xpBarChartCanvas;
+    if (!canvas) return;
+    const colors = this.getThemeChartColors();
+
+    // Collect 7 days: D-6 to D-0 (today)
+    const dayLabels = [];
+    const xpValues = [];
+    const backgroundColors = [];
+    let totalWeeklyXp = 0;
+
+    const [y, m, d] = this.simulatedCurrentDate.split('-').map(Number);
+    const baseDate = new Date(y, m - 1, d);
+
+    for (let i = 6; i >= 0; i--) {
+      const dt = new Date(baseDate);
+      dt.setDate(dt.getDate() - i);
+      const dy = dt.getFullYear();
+      const dm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+      const dateStr = `${dy}-${dm}-${dd}`;
+
+      const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+      const lbl = (i === 0) ? 'TODAY' : `${dayNames[dt.getDay()]} ${dt.getDate()}`;
+      dayLabels.push(lbl);
+
+      const histEntry = this.player.history && this.player.history[dateStr];
+      const xpVal = histEntry ? histEntry.xp : 0;
+      xpValues.push(xpVal);
+      backgroundColors.push(i === 0 ? colors.primary : (colors.secondary || colors.grid));
+      totalWeeklyXp += xpVal;
+    }
+
+    // Update weekly summary badge
+    if (this.dom.chartWeeklyXpBadge) {
+      this.dom.chartWeeklyXpBadge.textContent = `+${totalWeeklyXp} XP THIS WEEK`;
+    }
+    if (this.dom.chartDailyAvgLabel) {
+      const avg = Math.round(totalWeeklyXp / 7);
+      this.dom.chartDailyAvgLabel.textContent = `AVG: ${avg} XP/DAY`;
+    }
+
+    // Fallback if Chart.js is not loaded
+    if (typeof Chart === 'undefined') return;
+
+    if (this.chartInstances.xpBar) {
+      this.chartInstances.xpBar.destroy();
+    }
+
+    const maxY = Math.max(75, Math.ceil(Math.max(...xpValues, 50) / 25) * 25);
+
+    this.chartInstances.xpBar = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: dayLabels,
+        datasets: [{
+          label: 'XP GAINED',
+          data: xpValues,
+          backgroundColor: backgroundColors,
+          borderColor: colors.primary,
+          borderWidth: 2,
+          // === Brutalist Flat Pixel-Block Styling ===
+          borderRadius: 0,        // Zero rounded corners
+          borderSkipped: false,   // Outlines all 4 edges (doesn't skip bottom border)
+          barPercentage: 0.65,
+          categoryPercentage: 0.85
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
+        layout: {
+          padding: { top: 14, bottom: 4, left: 4, right: 8 }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              font: { family: '"Space Mono", monospace', size: 10, weight: 'bold' },
+              color: colors.text
+            },
+            border: { width: 2, color: colors.primary }
+          },
+          y: {
+            grid: {
+              color: colors.grid,
+              borderDash: [3, 3]
+            },
+            ticks: {
+              font: { family: '"Space Mono", monospace', size: 10 },
+              color: colors.text,
+              stepSize: 25
+            },
+            border: { width: 2, color: colors.primary },
+            suggestedMax: maxY
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            cornerRadius: 0,
+            backgroundColor: colors.bg,
+            titleColor: colors.text,
+            bodyColor: colors.text,
+            borderColor: colors.primary,
+            borderWidth: 2,
+            titleFont: { family: '"Press Start 2P", monospace', size: 9 },
+            bodyFont: { family: '"Space Mono", monospace', size: 11 }
+          }
+        }
+      }
+    });
+  }
+
+  drawRadarChart() {
+    const canvas = this.dom.radarChartCanvas;
+    if (!canvas) return;
+    const colors = this.getThemeChartColors();
+
+    // 1. DIS (Discipline): Daily task completion rate
+    const dailies = this.player.tasks.filter(t => t instanceof DailyTask);
+    const completedDailies = dailies.filter(t => t.completed).length;
+    const dis = dailies.length > 0 ? Math.round((completedDailies / dailies.length) * 100) : 75;
+
+    // 2. PUN (Punctuality): Deadline tasks not overdue
+    const deadlines = this.player.tasks.filter(t => t instanceof DeadlineTask);
+    const overdueCount = deadlines.filter(t => !t.completed && t.isOverdue(this.simulatedCurrentDate)).length;
+    const pun = deadlines.length > 0 ? Math.max(10, Math.round(((deadlines.length - overdueCount) / deadlines.length) * 100)) : 80;
+
+    // 3. CON (Consistency): Habit streak magnitude
+    const bestStreak = this.player.getBestStreak();
+    const con = Math.min(100, Math.max(20, bestStreak * 12 + 25));
+
+    // 4. VIT (Vitality): Current player health
+    const vit = this.player.hp;
+
+    // 5. POW (Power): Level & overall XP progress
+    const pow = Math.min(100, Math.max(15, this.player.level * 14 + Math.round((this.player.xp % 100) * 0.3)));
+
+    const stats = [
+      { key: 'DIS', label: 'DISCIPLINE', desc: 'Measures your overall task completion rate and adherence to daily routines.', val: dis },
+      { key: 'PUN', label: 'PUNCTUALITY', desc: 'Tracks how reliably you complete your "Deadline" quests before they become overdue.', val: pun },
+      { key: 'CON', label: 'CONSISTENCY', desc: 'Reflects your ability to maintain unbroken "Habit" streaks without skipping days.', val: con },
+      { key: 'VIT', label: 'VITALITY', desc: 'Represents your Health Point (HP) management and how well you avoid offline penalties.', val: vit },
+      { key: 'POW', label: 'POWER', desc: 'Likely tied to your XP momentum, measuring how many high-value tasks you are crushing to level up.', val: pow }
+    ];
+
+    // Compute Combat Rating
+    const avgStat = Math.round((dis + pun + con + vit + pow) / 5);
+    let rating = 'D';
+    if (avgStat >= 88) rating = 'S-RANK';
+    else if (avgStat >= 74) rating = 'A-RANK';
+    else if (avgStat >= 60) rating = 'B-RANK';
+    else if (avgStat >= 40) rating = 'C-RANK';
+    else rating = 'D-RANK';
+
+    if (this.dom.chartCombatRatingBadge) {
+      this.dom.chartCombatRatingBadge.textContent = `COMBAT RATING: ${rating} (${avgStat}%)`;
+    }
+
+    if (this.dom.radarAttributeChips) {
+      this.dom.radarAttributeChips.innerHTML = stats.map(s => 
+        `<span class="radar-chip" title="${s.key} (${s.label}): ${s.desc}"><strong>${s.key}:</strong> ${s.val}%</span>`
+      ).join('');
+    }
+
+    // Fallback if Chart.js is not loaded
+    if (typeof Chart === 'undefined') return;
+
+    if (this.chartInstances.radar) {
+      this.chartInstances.radar.destroy();
+    }
+
+    // Hex to RGBA conversion for fill opacity
+    const hex = colors.primary.replace('#', '');
+    const num = parseInt(hex.length === 3 ? hex.split('').map(x => x + x).join('') : hex, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    const fillRgba = `rgba(${r}, ${g}, ${b}, 0.35)`;
+
+    this.chartInstances.radar = new Chart(canvas, {
+      type: 'radar',
+      data: {
+        labels: ['DIS', 'PUN', 'CON', 'VIT', 'POW'],
+        datasets: [{
+          label: 'HERO STATS',
+          data: [dis, pun, con, vit, pow],
+          backgroundColor: fillRgba,
+          borderColor: colors.primary,
+          borderWidth: 3,
+
+          // === Brutalist Jagged Geometry ===
+          tension: 0,                      // Strips Bézier curves for pure straight vectors
+          borderCapStyle: 'square',        // Flat square caps
+          borderJoinStyle: 'miter',        // Sharp angular corners (prevents rounded joints)
+          borderMiterLimit: 15,            // Preserves sharp spikes without beveling
+          
+          // Square/Pixel points instead of smooth circles
+          pointStyle: 'rect',              // Square vertices
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: colors.bg,
+          pointBorderColor: colors.primary,
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
+        layout: {
+          padding: { top: 10, bottom: 10, left: 10, right: 10 }
+        },
+        scales: {
+          r: {
+            grid: {
+              circular: false,             // Forces strict polygonal concentric rings
+              color: colors.grid,
+              lineWidth: 1
+            },
+            angleLines: {
+              color: colors.grid,
+              lineWidth: 1
+            },
+            pointLabels: {
+              font: {
+                family: '"Press Start 2P", monospace',
+                size: 9
+              },
+              color: colors.text
+            },
+            ticks: {
+              display: false,              // Hides smooth tick text for cleaner brutalist look
+              stepSize: 25
+            },
+            suggestedMin: 0,
+            suggestedMax: 100
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            cornerRadius: 0,
+            backgroundColor: colors.bg,
+            titleColor: colors.text,
+            bodyColor: colors.text,
+            borderColor: colors.primary,
+            borderWidth: 2,
+            titleFont: { family: '"Press Start 2P", monospace', size: 9 },
+            bodyFont: { family: '"Space Mono", monospace', size: 10 },
+            callbacks: {
+              title: function(items) {
+                if (!items || !items.length) return '';
+                const idx = items[0].dataIndex;
+                const titles = [
+                  'DIS (Discipline)',
+                  'PUN (Punctuality)',
+                  'CON (Consistency)',
+                  'VIT (Vitality)',
+                  'POW (Power)'
+                ];
+                return titles[idx] || items[0].label;
+              },
+              label: function(item) {
+                return ` SCORE: ${item.raw}%`;
+              },
+              afterLabel: function(item) {
+                const descs = [
+                  'Task completion & daily routines',
+                  'Deadline quests cleared before overdue',
+                  'Unbroken habit streaks preserved',
+                  'HP defense against offline penalties',
+                  'XP momentum & high-value quest clearing'
+                ];
+                return descs[item.dataIndex] || '';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  drawDonutChart() {
+    const canvas = this.dom.donutChartCanvas;
+    if (!canvas) return;
+    const colors = this.getThemeChartColors();
+
+    // Counts
+    let dailyCount = 0, dailyDone = 0;
+    let deadlineCount = 0, deadlineDone = 0;
+    let habitCount = 0, habitDone = 0;
+
+    this.player.tasks.forEach(t => {
+      if (t instanceof DailyTask) {
+        dailyCount++;
+        if (t.completed) dailyDone++;
+      } else if (t instanceof DeadlineTask) {
+        deadlineCount++;
+        if (t.completed) deadlineDone++;
+      } else if (t instanceof HabitTask) {
+        habitCount++;
+        if (t.completed || t.streak > 0) habitDone++;
+      }
+    });
+
+    const total = this.player.tasks.length;
+    const totalDone = dailyDone + deadlineDone + habitDone;
+    const clearRate = total > 0 ? Math.round((totalDone / total) * 100) : 0;
+
+    if (this.dom.chartClearRateBadge) {
+      this.dom.chartClearRateBadge.textContent = `CLEAR: ${clearRate}% (${totalDone}/${total})`;
+    }
+
+    const slices = [
+      { label: 'DAILY', count: dailyCount, done: dailyDone, color: colors.primary },
+      { label: 'DEADLINE', count: deadlineCount, done: deadlineDone, color: colors.danger },
+      { label: 'HABIT', count: habitCount, done: habitDone, color: colors.secondary }
+    ];
+
+    // Update legend breakdown list in DOM (centered 3-card brutalist layout)
+    if (this.dom.donutBreakdownList) {
+      this.dom.donutBreakdownList.innerHTML = slices.map(s => {
+        const pct = total > 0 ? Math.round((s.count / total) * 100) : 0;
+        return `
+          <div class="donut-breakdown-item" style="border-top-color: ${s.color};">
+            <span class="donut-label-group">
+              <span class="donut-color-dot" style="background: ${s.color};"></span>
+              <span>${s.label}</span>
+            </span>
+            <span class="donut-stats-line"><strong>${s.count}</strong> (${pct}%)</span>
+            <span class="donut-sub-line">${s.done} Done</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Fallback if Chart.js is not loaded
+    if (typeof Chart === 'undefined') return;
+
+    if (this.chartInstances.donut) {
+      this.chartInstances.donut.destroy();
+    }
+
+    const chartData = (total === 0) ? [1, 0, 0] : [dailyCount, deadlineCount, habitCount];
+    const bgColors = (total === 0) ? [colors.grid, colors.grid, colors.grid] : [colors.primary, colors.danger, colors.secondary];
+
+    this.chartInstances.donut = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['DAILY', 'DEADLINE', 'HABIT'],
+        datasets: [{
+          data: chartData,
+          backgroundColor: bgColors,
+          borderColor: colors.bg,
+          borderWidth: 2,
+          // Brutalist flat slice edges
+          borderRadius: 0,
+          spacing: 0,
+          offset: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // Breaks out of 1:1 aspect ratio constraint
+        radius: '96%',              // Forces chart to maximize available canvas area
+        cutout: '50%',              // Inner hole diameter (thick chunky brutalist ring)
+        devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
+        layout: {
+          padding: 4                // Eliminates dead space while avoiding clipping
+        },
+        plugins: {
+          legend: {
+            display: false          // Use custom centered HTML legend below chart
+          },
+          tooltip: {
+            cornerRadius: 0,        // Brutalist sharp tooltip corners
+            backgroundColor: colors.bg,
+            titleColor: colors.text,
+            bodyColor: colors.text,
+            borderColor: colors.primary,
+            borderWidth: 2,
+            titleFont: { family: '"Press Start 2P", monospace', size: 9 },
+            bodyFont: { family: '"Space Mono", monospace', size: 11 },
+            boxPadding: 4,
+            callbacks: {
+              label: function(item) {
+                const totalVal = chartData.reduce((a, b) => a + b, 0);
+                const pct = totalVal > 0 ? Math.round((item.raw / totalVal) * 100) : 0;
+                return ` ${item.label}: ${item.raw} quests (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  renderHabitHeatmap() {
+    const grid = this.dom.habitHeatmapGrid;
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const days = [];
+    const [y, m, d] = this.simulatedCurrentDate.split('-').map(Number);
+    const baseDate = new Date(y, m - 1, d);
+
+    let activeDaysCount = 0;
+
+    // 28 days (4 weeks)
+    for (let i = 27; i >= 0; i--) {
+      const dt = new Date(baseDate);
+      dt.setDate(dt.getDate() - i);
+      const dy = dt.getFullYear();
+      const dm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+      const dateStr = `${dy}-${dm}-${dd}`;
+
+      const entry = this.player.history && this.player.history[dateStr];
+      const completed = entry ? (entry.tasksCompleted || 0) : 0;
+      const xp = entry ? (entry.xp || 0) : 0;
+
+      if (completed > 0) activeDaysCount++;
+
+      let lvlClass = 'lvl-0';
+      if (completed >= 3) lvlClass = 'lvl-3';
+      else if (completed === 2) lvlClass = 'lvl-2';
+      else if (completed === 1) lvlClass = 'lvl-1';
+
+      const cell = document.createElement('div');
+      cell.className = `heatmap-cell ${lvlClass}`;
+      cell.title = `${dateStr}: ${completed} quest(s) cleared (+${xp} XP)`;
+      cell.dataset.date = dateStr;
+
+      grid.appendChild(cell);
+    }
+
+    if (this.dom.chartHeatmapActiveDaysBadge) {
+      this.dom.chartHeatmapActiveDaysBadge.textContent = `${activeDaysCount}/28 ACTIVE DAYS`;
+    }
+  }
+}
+
+// ============================================================================
+// 5. APPLICATION LAUNCH
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  window.gameEngine = new GameController();
+  window.gameEngine.init();
+});
+
+</script>
+</body>
+</html>
